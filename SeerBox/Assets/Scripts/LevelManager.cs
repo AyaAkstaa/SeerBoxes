@@ -33,19 +33,14 @@ public class LevelManager : MonoBehaviour {
     [Header("Level 2 assets")]
     public Sprite islandHintSprite;
     public Sprite xMarkSprite; // for overlay on island map
+
     [Header("Level 4 assets")]
-    public Sprite[] symmetryHintSprites; // for level 4
+    public RectTransform noChestZoneSize;
 
     [Header("Level 7 assets")]
-    public Sprite[] iqHintSprites; // level 7
-
-    [Header("Level 8 assets")]
-    public Sprite oddoneSprite; // template for 8 if needed
-
-    [Header("Level 9 assets")]
     //public Sprite twoColorsSprite; // for level 9 - shows two color circles
-    public Image colorImage1;
-    public Image colorImage2;
+    public Sprite colorImage1;
+    public Sprite colorImage2;
 
     class MathTemplate
     {
@@ -122,8 +117,7 @@ public class LevelManager : MonoBehaviour {
             case 6: GenerateLevel6(); break;
             case 7: GenerateLevel7(); break;
             case 8: GenerateLevel8(); break;
-            case 9: GenerateLevel9(); break;
-            case 10: GenerateLevel10(); break;
+            case 9: GenerateWin(); break;    
         }
     }
 
@@ -629,10 +623,10 @@ public class LevelManager : MonoBehaviour {
             int a = path[i], b = path[i+1];
             int ax = a % cols, ay = a / cols;
             int bx = b % cols, by = b / cols;
-            if (bx > ax) s += "→";
-            else if (bx < ax) s += "\u2190";
-            else if (by > ay) s += "↓";
-            else s += "\u2191";
+            if (bx > ax) s += "> ";
+            else if (bx < ax) s += "< ";
+            else if (by > ay) s += "v ";
+            else s += "^ ";
         }
         return s;
     }
@@ -641,7 +635,7 @@ public class LevelManager : MonoBehaviour {
     void GenerateLevel6() {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-        hintText.text = "Both shown are NOT the treasure. There's a faint one somewhere else.";
+        hintText.text = "Не левый и не правый";
         // show two big chests (2 visible) and place hidden chest random (outside grid)
         // but user said "both chests and 1 hidden" — implement: spawn 2 large chests and spawn one hidden at random pos
         var list = SpawnGrid(1,2,chestGenericPrefab); // two visible
@@ -649,6 +643,7 @@ public class LevelManager : MonoBehaviour {
         int not1 = 0, not2 = 1;
         // spawn hidden somewhere in chestParent bounds, ensuring not overlapping existing chests
         Vector2 hiddenPos = FindRandomFreeSpot();
+        Debug.Log($"FindRandomFreeSpot returned: {hiddenPos}");
         var hiddenGo = Instantiate(chestHiddenPrefab, chestParent);
         hiddenGo.GetComponent<RectTransform>().anchoredPosition = hiddenPos;
         var hiddenChest = hiddenGo.GetComponent<Chest>();
@@ -658,60 +653,124 @@ public class LevelManager : MonoBehaviour {
         correctIndex = 2;
     }
 
-    Vector2 FindRandomFreeSpot() {
-        // pick random anchored position inside parent but not inside visible chests rects
+    Vector2 FindRandomFreeSpot()
+    {
         Rect r = chestParent.rect;
-        for (int attempts = 0; attempts < 50; attempts++) {
-            float x = UnityEngine.Random.Range(r.xMin + 20, r.xMax - 20);
-            float y = UnityEngine.Random.Range(r.yMin + 20, r.yMax - 20);
-            Vector2 cand = new Vector2(x,y);
+        const float padding = 0.1f;
+        const float minDistance = 0.5f;
+
+        float minX = r.xMin + padding;
+        float maxX = r.xMax - padding;
+        float minY = r.yMin + padding;
+        float maxY = r.yMax - padding;
+
+        // Защита: если контейнер слишком мал
+        if (minX > maxX || minY > maxY)
+        {
+            Debug.LogWarning("Parent rect too small for padding.");
+            return new Vector2(6.34f, -3.98f);
+        }
+
+        Canvas canvas = chestParent.GetComponentInParent<Canvas>();
+
+        for (int attempts = 0; attempts < 50; attempts++)
+        {
+            Vector2 cand = new Vector2(
+                UnityEngine.Random.Range(minX, maxX),
+                UnityEngine.Random.Range(minY, maxY)
+            );
+
             bool ok = true;
-            foreach (var g in spawned) {
+
+            // Проверка расстояния до уже существующих сундуков (works if same parent coordinate space)
+            foreach (var g in spawned)
+            {
+                if (g == null) continue;
                 var rt = g.GetComponent<RectTransform>();
-                if (Vector2.Distance(rt.anchoredPosition, cand) < 90f) { ok = false; break; }
+                if (rt == null) continue;
+                if (Vector2.Distance(rt.anchoredPosition, cand) < minDistance)
+                {
+                    ok = false;
+                    continue;
+                }
             }
+
+            if (!ok) continue;
+
+            // ВАРИАНТ A: проверка перекрытия с noChestZone через преобразование координат в локальную систему noChestZone
+            if (noChestZoneSize != null)
+            {
+                // cand — локальная позиция относительно chestParent.
+                // Преобразуем её в мировой, затем в локальные координаты noChestZoneSize.
+                Vector3 worldPos = chestParent.TransformPoint(cand);
+                Vector3 localInNoChest = noChestZoneSize.InverseTransformPoint(worldPos);
+                if (noChestZoneSize.rect.Contains((Vector2)localInNoChest))
+                {
+                    ok = false;
+                }
+            }
+
+            // ВАРИАНТ B (альтернатива): через screenPoint (полезно для ScreenSpace канвы)
+            /*
+            if (noChestZoneSize != null && canvas != null)
+            {
+                Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(
+                    canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
+                    chestParent.TransformPoint(cand)
+                );
+
+                if (RectTransformUtility.RectangleContainsScreenPoint(noChestZoneSize, screenPoint,
+                        canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera))
+                {
+                    ok = false;
+                }
+            }
+            */
             if (ok) return cand;
         }
-        return Vector2.zero;
+
+        Debug.Log("FindRandomFreeSpot: failed to find free spot");
+        return new Vector2(6.34f, -3.98f);
     }
+
 
     // 7) IQ test: like level 4, 6 image chests with one correct according to hint
-    void GenerateLevel7() {
-        hintText.text = "Select the missing element (IQ style).";
-        hintImage.sprite = iqHintSprites[UnityEngine.Random.Range(0, iqHintSprites.Length)];
-        hintImage.color = Color.white;
-        var list = SpawnGrid(2,3,chestImagePrefab);
-        int correctLocal = UnityEngine.Random.Range(0,6);
-        for (int i=0;i<list.Count;i++) {
-            var ic = list[i].GetComponent<ImageChest>();
-            if (i == correctLocal) ic.SetContent( GetIQCorrectSprite() );
-            else ic.SetContent( GetIQDistractorSprite() );
-        }
-        correctIndex = correctLocal;
-    }
+    // void GenerateLevel7() {
+    //     hintText.text = "Select the missing element (IQ style).";
+    //     hintImage.sprite = iqHintSprites[UnityEngine.Random.Range(0, iqHintSprites.Length)];
+    //     hintImage.color = Color.white;
+    //     var list = SpawnGrid(2,3,chestImagePrefab);
+    //     int correctLocal = UnityEngine.Random.Range(0,6);
+    //     for (int i=0;i<list.Count;i++) {
+    //         var ic = list[i].GetComponent<ImageChest>();
+    //         if (i == correctLocal) ic.SetContent( GetIQCorrectSprite() );
+    //         else ic.SetContent( GetIQDistractorSprite() );
+    //     }
+    //     correctIndex = correctLocal;
+    // }
 
-    Sprite GetIQCorrectSprite() { return iqHintSprites[0]; }
-    Sprite GetIQDistractorSprite() { return iqHintSprites[ UnityEngine.Random.Range(0, iqHintSprites.Length) ]; }
+    // Sprite GetIQCorrectSprite() { return iqHintSprites[0]; }
+    // Sprite GetIQDistractorSprite() { return iqHintSprites[ UnityEngine.Random.Range(0, iqHintSprites.Length) ]; }
 
     // 8) Odd-one-out (5 chests). Use visual differences (size, border, shape). Answer is the one that is NOT highlighted.
-    void GenerateLevel8()
-    {
-        hintImage.sprite = hintSprite;
-        hintImage.color = Color.white;
-        hintText.text = "Which one is special? (the trick: the correct one is the one not standing out)";
-        // spawn 1x5
-        var list = SpawnGrid(1, 5, chestOddPrefab);
-        // create one "normal" and 4 "variations" or vice versa. Per user's instruction: correct is that which is nothing special (i.e., non-distinct)
-        // Approach: make 4 chests have an obvious difference; 1 chest is plain -> that plain one is correct
-        int plainIndex = UnityEngine.Random.Range(0, 5);
-        for (int i = 0; i < list.Count; i++)
-        {
-            var odd = list[i].GetComponent<OddChest>();
-            if (i == plainIndex) odd.SetNormalAppearance();
-            else odd.SetVariantAppearance(i); // different patterns
-        }
-        correctIndex = plainIndex;
-    }
+    // void GenerateLevel7()
+    // {
+    //     hintImage.sprite = hintSprite;
+    //     hintImage.color = Color.white;
+    //     hintText.text = "Which one is special? (the trick: the correct one is the one not standing out)";
+    //     // spawn 1x5
+    //     var list = SpawnGrid(1, 5, chestOddPrefab);
+    //     // create one "normal" and 4 "variations" or vice versa. Per user's instruction: correct is that which is nothing special (i.e., non-distinct)
+    //     // Approach: make 4 chests have an obvious difference; 1 chest is plain -> that plain one is correct
+    //     int plainIndex = UnityEngine.Random.Range(0, 5);
+    //     for (int i = 0; i < list.Count; i++)
+    //     {
+    //         var odd = list[i].GetComponent<OddChest>();
+    //         if (i == plainIndex) odd.SetNormalAppearance();
+    //         else odd.SetVariantAppearance(i); // different patterns
+    //     }
+    //     correctIndex = plainIndex;
+    // }
 
     // 9) Color-XOR / color-mix: 6 colored chests, hint shows two colors; answer is chest whose color equals computed mix
     // void GenerateLevel9() {
@@ -734,7 +793,7 @@ public class LevelManager : MonoBehaviour {
     // }
 
 
-    void GenerateLevel9()
+    void GenerateLevel7()
     {
         hintText.text = "Which chest has the color resulting from mixing the two hint colors?";
         hintImage.sprite = hintSprite; 
@@ -793,8 +852,8 @@ public class LevelManager : MonoBehaviour {
         }
 
         // Создаем два цветных изображения в подсказке (как во 2-м уровне)
-        CreateHintColorImage(colorA, "HintColor1", new Vector2(-50, 0));
-        CreateHintColorImage(colorB, "HintColor2", new Vector2(50, 0));
+        CreateHintColorImage(colorA, "HintColor1", new Vector2(-25, -50));
+        CreateHintColorImage(colorB, "HintColor2", new Vector2(25, 50));
     }
 
     // Проверка приближенного равенства цветов
@@ -807,23 +866,31 @@ public class LevelManager : MonoBehaviour {
 
 
     // Создание маленького Image на подсказке
-    void CreateHintColorImage(Color color, string name, Vector2 anchoredPos)
+    void CreateHintColorImage(Color color, string name, Vector2 anchoredPos) 
     {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        GameObject go = new GameObject(name, typeof(RectTransform), typeof(SpriteRenderer));
+        go.tag = "ColorImage";
         go.transform.SetParent(hintImage.transform, false);
-        var img = go.GetComponent<Image>();
-        img.color = color;
-        RectTransform rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(40, 40);
-        rt.anchoredPosition = anchoredPos;
+        var renderer = go.GetComponent<SpriteRenderer>();
+        renderer.color = color;
+        renderer.sprite = name == "HintColor1" ? colorImage1 : colorImage2;
+        renderer.sortingOrder = 1;
+        renderer.sortingOrder = 15;
+        go.transform.localPosition = new Vector3(anchoredPos.x, anchoredPos.y, -0.1f);
+        go.transform.localScale = Vector3.one * 1f;
     }
     // 10) No hint: two chests only with jokey text
-    void GenerateLevel10() {
+    void GenerateLevel8()
+    {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         hintText.text = "\"Thought it'd be easy? Now real clairvoyance time.\"";
-        var list = SpawnGrid(1,2,chestGenericPrefab);
-        correctIndex = UnityEngine.Random.Range(0,2);
+        var list = SpawnGrid(1, 2, chestGenericPrefab);
+        correctIndex = UnityEngine.Random.Range(0, 2);
+    }
+    
+    void GenerateWin() {
+        hintText.text = "Congratulations! You've completed all levels!";
     }
 
 }
