@@ -615,10 +615,10 @@ public class LevelManager : MonoBehaviour {
             int a = path[i], b = path[i+1];
             int ax = a % cols, ay = a / cols;
             int bx = b % cols, by = b / cols;
-            if (bx > ax) s += "→";
-            else if (bx < ax) s += "←";
-            else if (by > ay) s += "↓";
-            else s += "↑";
+            if (bx > ax) s += ">";
+            else if (bx < ax) s += "<";
+            else if (by > ay) s += "\\/";
+            else s += "/\\";
         }
         return s;
     }
