@@ -4,8 +4,12 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using System.Security.Cryptography;
+using System.Collections;
 
-public class LevelManager : MonoBehaviour {
+public class LevelManager : MonoBehaviour
+{
+    public int maxLevel = 8;
+
     [Header("UI")]
     public RectTransform chestParent;
     public RectTransform chestZoneSize;
@@ -25,90 +29,140 @@ public class LevelManager : MonoBehaviour {
     public GameObject chestOddPrefab;
     public GameObject chestColorPrefab;
 
+    [Header("Debug")]
+    public bool enableDebug = true;
+
     List<GameObject> spawned = new List<GameObject>();
     int correctIndex = -1;
     int currentLevel = 1;
+    private bool isLevelLoading = false;
+    private Coroutine levelLoadCoroutine;
 
     // example assets you must assign:
     [Header("Level 2 assets")]
     public Sprite islandHintSprite;
-    public Sprite xMarkSprite; // for overlay on island map
+    public Sprite xMarkSprite;
 
     [Header("Level 4 assets")]
     public RectTransform noChestZoneSize;
 
     [Header("Level 7 assets")]
-    //public Sprite twoColorsSprite; // for level 9 - shows two color circles
     public Sprite colorImage1;
     public Sprite colorImage2;
+
+    private UIManager uiManager;
 
     class MathTemplate
     {
         public string expr;
-        public Func<int, bool> predicate; // проверяет правильность
-        public int correctMin, correctMax; // диапазон, в котором берём правильное значение
-        public int distractorMin, distractorMax; // диапазон для генерации дистракторов
+        public Func<int, bool> predicate;
+        public int correctMin, correctMax;
+        public int distractorMin, distractorMax;
         public MathTemplate(string e, Func<int, bool> pred, int cmin, int cmax, int dmin, int dmax)
         {
             expr = e; predicate = pred; correctMin = cmin; correctMax = cmax; distractorMin = dmin; distractorMax = dmax;
         }
     }
 
-
     List<MathTemplate> GetMathTemplates()
     {
-            return new List<MathTemplate> {
-            // 1) пример: результат ≤ 6
+        return new List<MathTemplate> {
             new MathTemplate("2 + 2 * 2 - ...", x => x <= 6, 1, 6, 7, 50),
-
-            // 2) "8-3*(6-1)+1..." (многоточие — продолжение недописанного числа, первая цифра 1)
-            //    Требование: 8 вариантов (дистракторы) — числа < 2, правильный — число >= 3
             new MathTemplate("8 - 3*(6-1) + 1... ", x => x >= 3, 3, 50, -20, 1),
-
-            // 3) "65*4-20..." (многоточие — продолжение недописанного числа, первые цифры '20')
-            //    Требование: 8 вариантов — числа > 60, правильный — число <= 60
             new MathTemplate("65 * 4 - 20...", x => x <= 60, 0, 60, 61, 200),
-
-            // 4) "496:16+..."  (496 / 16 = 31)
-            //    Требование: 8 вариантов — числа <= 31, правильный — число > 31
             new MathTemplate("496 : 16 + ...", x => x > 31, 32, 200, -20, 31),
-
-            // 5) "(11-8+2)*0-..." (выражение даёт 0)
-            //    Требование: 8 вариантов — положительные числа, правильный — 0 или меньше
             new MathTemplate("(11 - 8 + 2) * 0 - ...", x => x <= 0, -20, 0, 1, 80)
         };
     }
 
-
-    void Start() {
-        StartLevel(1);
+    void Start()
+    {
+        uiManager = FindObjectOfType<UIManager>();
     }
 
-    void Clear() {
-        foreach (var g in spawned) Destroy(g);
+    void Clear()
+    {
+        // Останавливаем корутину загрузки уровня
+        if (levelLoadCoroutine != null)
+        {
+            StopCoroutine(levelLoadCoroutine);
+            levelLoadCoroutine = null;
+        }
+
+        // Удаляем все созданные объекты
+        foreach (var g in spawned) 
+        {
+            if (g != null) 
+                Destroy(g);
+        }
         spawned.Clear();
+        
         correctIndex = -1;
-        RectTransform rect = hintImage.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(238,412);
-        hintImage.sprite = null; hintImage.color = Color.clear;
-        RectTransform TextRect = hintText.GetComponent<RectTransform>();
-        TextRect.sizeDelta = new Vector2(4.84f,7.35f);
-        hintText.text = "";
-        hintText.font = standartFont;
-        hintText.UpdateFontAsset();
+        
+        // Сбрасываем UI
+        if (hintImage != null)
+        {
+            RectTransform rect = hintImage.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(238, 412);
+            hintImage.sprite = null; 
+            hintImage.color = Color.clear;
+        }
+        
+        if (hintText != null)
+        {
+            RectTransform TextRect = hintText.GetComponent<RectTransform>();
+            TextRect.sizeDelta = new Vector2(4.84f, 7.35f);
+            hintText.text = "";
+            hintText.font = standartFont;
+            hintText.UpdateFontAsset();
+        }
+        
+        // Удаляем вспомогательные объекты
         var old = hintImage.transform.Find("HintX");
         if (old) Destroy(old.gameObject);
+        
         var existsColors = GameObject.FindGameObjectsWithTag("ColorImage");
         foreach (GameObject colorImage in existsColors)
         {
             Destroy(colorImage);
         }
+
+        isLevelLoading = false;
     }
 
-    public void StartLevel(int lvl) {
+    public void StartLevel(int lvl)
+    {
+        if (isLevelLoading) 
+        {
+            Debug.LogWarning("Level is already loading, please wait...");
+            return;
+        }
+
+        isLevelLoading = true;
         Clear();
         currentLevel = lvl;
-        switch (lvl) {
+
+        Debug.Log($"Starting level {lvl}");
+
+        // Показываем панель уровня для всех уровней
+        if (uiManager != null)
+        {
+            uiManager.ShowLevelPanel(lvl);
+        }
+
+        // Запускаем генерацию уровня после задержки
+        levelLoadCoroutine = StartCoroutine(GenerateLevelWithDelay(lvl));
+    }
+
+    IEnumerator GenerateLevelWithDelay(int lvl)
+    {
+        // Даем время для отображения панели уровня
+        yield return new WaitForSeconds(2f);
+
+        Debug.Log($"Generating level {lvl}");
+        
+        switch (lvl)
+        {
             case 1: GenerateLevel1(); break;
             case 2: GenerateLevel2(); break;
             case 3: GenerateLevel3(); break;
@@ -117,12 +171,15 @@ public class LevelManager : MonoBehaviour {
             case 6: GenerateLevel6(); break;
             case 7: GenerateLevel7(); break;
             case 8: GenerateLevel8(); break;
-            case 9: GenerateWin(); break;    
         }
+
+        isLevelLoading = false;
+        Debug.Log($"Level {lvl} generation completed");
     }
 
     // helper: spawn grid rows x cols with given prefab, returns list
-    List<GameObject> SpawnGrid(int rows, int cols, GameObject prefab) {
+    List<GameObject> SpawnGrid(int rows, int cols, GameObject prefab)
+    {
         List<GameObject> list = new List<GameObject>();
         float spacingX = 2.3f, spacingY = 1.6f; // оставил твои значения; интерпретация ниже
         Vector2 origin = new Vector2(-(cols - 1) * spacingX / 2f, (rows - 1) * spacingY / 2f);
@@ -133,7 +190,8 @@ public class LevelManager : MonoBehaviour {
         Vector2 zoneSizeUI = Vector2.zero;      // в пикселях (для UI-элементов)
         Vector2 zoneSizeWorld = Vector2.zero;   // в world units (для SpriteRenderer)
 
-        if (haveZone) {
+        if (haveZone)
+        {
             zoneSizeUI = chestZoneSize.rect.size; // в локальных пикселях RectTransform
 
             // получим world-ширину/высоту зоны, чтобы масштабировать world-префабы
@@ -156,14 +214,16 @@ public class LevelManager : MonoBehaviour {
         var sampleRect = sample.GetComponent<RectTransform>();
         var sampleSpriteR = sample.GetComponentInChildren<SpriteRenderer>(); // ищем спрайт в children
 
-        if (sampleRect != null) {
+        if (sampleRect != null)
+        {
             // UI prefab: rect.rect даёт "unscaled" размер; учитываем localScale
             Vector2 rectSize = sampleRect.rect.size;
             Vector3 ls = sampleRect.localScale;
             sampleWidthUI = rectSize.x * Mathf.Abs(ls.x);
             sampleHeightUI = rectSize.y * Mathf.Abs(ls.y);
         }
-        if (sampleSpriteR != null) {
+        if (sampleSpriteR != null)
+        {
             // World prefab: bounds.size даёт размер в локальных единицах * текущий lossyScale
             Vector3 bsize = sampleSpriteR.bounds.size; // уже с учётом lossy scale
             // bounds.size учитывает мировой масштаб, но возьмём local size via sprite.bounds / transform.localScale
@@ -176,15 +236,18 @@ public class LevelManager : MonoBehaviour {
         DestroyImmediate(sample);
 
         // Если оба нулевые — предупредим
-        if (sampleWidthUI == 0f && sampleWidthWorld == 0f) {
+        if (sampleWidthUI == 0f && sampleWidthWorld == 0f)
+        {
             Debug.LogWarning("SpawnGrid: не удалось определить размер префаба (нет RectTransform и нет SpriteRenderer). Масштабирование пропущено.");
         }
 
         // --- Вычисляем масштаб, чтобы сетка уместилась в chestZoneSize ---
         float finalScale = 1f;
-        if (haveZone) {
+        if (haveZone)
+        {
             // для UI-префабов:
-            if (sampleWidthUI > 0f && sampleHeightUI > 0f) {
+            if (sampleWidthUI > 0f && sampleHeightUI > 0f)
+            {
                 float gridWidthUI = (cols - 1) * spacingX + sampleWidthUI;
                 float gridHeightUI = (rows - 1) * spacingY + sampleHeightUI;
                 float sx = zoneSizeUI.x / Mathf.Max(0.0001f, gridWidthUI);
@@ -195,7 +258,8 @@ public class LevelManager : MonoBehaviour {
                 finalScale = Mathf.Min(finalScale, scaleUI);
             }
             // для world-префабов:
-            if (sampleWidthWorld > 0f && sampleHeightWorld > 0f) {
+            if (sampleWidthWorld > 0f && sampleHeightWorld > 0f)
+            {
                 float gridWidthWorld = (cols - 1) * spacingX + sampleWidthWorld;
                 float gridHeightWorld = (rows - 1) * spacingY + sampleHeightWorld;
                 float sxw = zoneSizeWorld.x / Mathf.Max(0.0001f, gridWidthWorld);
@@ -210,8 +274,10 @@ public class LevelManager : MonoBehaviour {
 
         // --- Теперь инстанцируем реальную сетку и применим масштаб + позиционирование ---
         List<GameObject> created = new List<GameObject>();
-        for (int r = 0; r < rows; r++) {
-            for (int c = 0; c < cols; c++) {
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < cols; c++)
+            {
                 Vector2 pos = origin + new Vector2(c * spacingX, -r * spacingY);
 
                 var go = Instantiate(prefab);
@@ -219,14 +285,17 @@ public class LevelManager : MonoBehaviour {
 
                 // обработка UI-префаба
                 var rect = go.GetComponent<RectTransform>();
-                if (rect != null) {
+                if (rect != null)
+                {
                     // применяем масштаб (uniform)
                     rect.localScale = Vector3.one * finalScale;
 
                     // позиционируем в anchoredPosition (при этом pos должен быть в тех же единицах, что spacing)
                     rect.anchoredPosition = pos;
 
-                } else {
+                }
+                else
+                {
                     // world-объект: изменим localScale и локальную позицию
                     go.transform.localScale = go.transform.localScale * finalScale;
                     go.transform.localPosition = new Vector3(pos.x, pos.y, 0f);
@@ -234,9 +303,12 @@ public class LevelManager : MonoBehaviour {
 
                 // Инициализация Chest (если компонент есть)
                 var chest = go.GetComponent<Chest>();
-                if (chest != null) {
+                if (chest != null)
+                {
                     chest.Init(idx, OnChestClicked);
-                } else {
+                }
+                else
+                {
                     Debug.LogWarning($"Spawned prefab '{prefab.name}' does not contain Chest component.");
                 }
 
@@ -253,33 +325,114 @@ public class LevelManager : MonoBehaviour {
 
     void OnChestClicked(int idx)
     {
+        if (isLevelLoading) return;
+
         Debug.Log("Clicked: " + idx);
         if (idx == correctIndex)
         {
             hintText.text = "Correct!";
             // GO NEXT after small delay
-            NextLevel();
+            StartCoroutine(NextLevelWithDelay());
         }
         else
         {
             Lose();
         }
     }
-    
-    void Lose() {
-        hintText.text = "Wrong! Restarting level.";
 
-        StartLevel(1);
+    IEnumerator NextLevelWithDelay()
+    {
+        yield return new WaitForSeconds(1f);
+        NextLevel();
     }
 
-    public void NextLevel() {
-        StartLevel(Mathf.Min(currentLevel + 1, 10));
+    void Lose()
+    {
+        hintText.text = "Wrong!";
+        StartCoroutine(ShowLoseScreenWithDelay());
+    }
+
+    IEnumerator ShowLoseScreenWithDelay()
+    {
+        yield return new WaitForSeconds(2f);
+        
+        // Очищаем уровень
+        Clear();
+        
+        // Показываем экран проигрыша
+        if (uiManager != null)
+        {
+            uiManager.ShowLoseScreen();
+        }
+    }
+
+    public void NextLevel()
+    {
+        if (isLevelLoading) return;
+
+        int nextLevel = currentLevel + 1;
+        Debug.Log($"Moving to level {nextLevel}");
+
+        if (nextLevel > maxLevel)
+        {
+            // все уровни пройдены -> победа
+            ShowWin();
+        }
+        else
+        {
+            StartLevel(nextLevel);
+        }
+    }
+
+    void ShowWin()
+    {
+        // Очищаем уровень
+        Clear();
+        
+        // Показываем панель победы
+        if (uiManager != null)
+        {
+            uiManager.ShowWinPanel();
+        }
+    }
+
+
+    void GenerateWin()
+    {
+        // Очищаем уровень
+        Clear();
+        
+        // Показываем панель победы
+        if (uiManager != null)
+        {
+            uiManager.ShowWinPanel();
+        }
+    }
+
+    // Метод для отладки - перейти на конкретный уровень
+    public void DebugLoadLevel(int level)
+    {
+        if (enableDebug && !isLevelLoading)
+        {
+            Debug.Log($"Debug: Loading level {level}");
+            StartLevel(Mathf.Clamp(level, 1, 9));
+        }
+    }
+
+    // Метод для отладки - показать текущий уровень
+    public void DebugShowCurrentLevel()
+    {
+        if (enableDebug)
+        {
+            Debug.Log($"Current level: {currentLevel}, Loading: {isLevelLoading}");
+        }
     }
 
     // ====== LEVEL IMPLEMENTATIONS ======
 
     // +1) Left/Right training: 2 identical chests
-    void GenerateLevel1() {
+    void GenerateLevel1()
+    {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         correctIndex = UnityEngine.Random.Range(0, 2);
@@ -287,27 +440,29 @@ public class LevelManager : MonoBehaviour {
             hintText.text = "Сокровище слева";
         else
             hintText.text = "Сокровище справа";
-        var list = SpawnGrid(1,2,chestGenericPrefab);
-        
+        var list = SpawnGrid(1, 2, chestGenericPrefab);
+
     }
 
     // 2) Island map: 5x5 grid, island image divided into 25 sectors, X at random sector.
-    void GenerateLevel2() {
+    void GenerateLevel2()
+    {
         hintImage.sprite = islandHintSprite;
         RectTransform rect = hintImage.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(300,300);
+        rect.sizeDelta = new Vector2(300, 300);
         hintImage.color = Color.white;
         // spawn 5x5 same chest prefab
-        var list = SpawnGrid(5,5,chestGenericPrefab);
+        var list = SpawnGrid(5, 5, chestGenericPrefab);
         // choose a random sector 0..24
-        int sel = UnityEngine.Random.Range(0,25);
+        int sel = UnityEngine.Random.Range(0, 25);
         correctIndex = sel;
         // draw an overlay 'X' on hintImage programmatically: we can set hintImage UV or place a child X sprite at corresponding sector
         // simplest: place small X GameObject as child of hintImage with anchored position
-        PlaceXOnHint(sel,5,5);
+        PlaceXOnHint(sel, 5, 5);
     }
 
-    void PlaceXOnHint(int index, int cols, int rows) {
+    void PlaceXOnHint(int index, int cols, int rows)
+    {
         // remove old Xs
         var old = hintImage.transform.Find("HintX");
         if (old) Destroy(old.gameObject);
@@ -315,13 +470,16 @@ public class LevelManager : MonoBehaviour {
         go.transform.SetParent(hintImage.transform, false);
         var img = go.GetComponent<Image>();
         // Use configured xMarkSprite when available, otherwise fall back to a colored placeholder
-        if (xMarkSprite != null) {
+        if (xMarkSprite != null)
+        {
             img.sprite = xMarkSprite;
             img.color = Color.white;
             img.preserveAspect = true;
             img.raycastTarget = false;
-        } else {
-            img.color = new Color(1,0,0,0.7f);
+        }
+        else
+        {
+            img.color = new Color(1, 0, 0, 0.7f);
         }
         RectTransform rt = go.GetComponent<RectTransform>();
         // compute cell anchored pos
@@ -329,10 +487,11 @@ public class LevelManager : MonoBehaviour {
         int row = index / cols;
         float px = (col + 0.5f) / cols - 0.5f; // normalized centered
         float py = 0.5f - (row + 0.5f) / rows;
-        rt.anchorMin = rt.anchorMax = new Vector2(0.5f,0.5f);
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.anchoredPosition = new Vector2(px * hintImage.rectTransform.rect.width, py * hintImage.rectTransform.rect.height);
         // size: use sprite native size if available, otherwise fallback to small square
-        if (xMarkSprite != null) {
+        if (xMarkSprite != null)
+        {
             // sprite.rect is in pixels — clamp to a reasonable UI size so it doesn't dominate
             Vector2 native = new Vector2(xMarkSprite.rect.width, xMarkSprite.rect.height);
             // limit larger dimension to 64 px
@@ -342,8 +501,10 @@ public class LevelManager : MonoBehaviour {
             else if (native.y > native.x && native.y > maxDim) scale = maxDim / native.y;
             else if (native.x > maxDim && native.y > maxDim) scale = maxDim / Mathf.Max(native.x, native.y);
             rt.sizeDelta = native * scale;
-        } else {
-            rt.sizeDelta = new Vector2(24,24);
+        }
+        else
+        {
+            rt.sizeDelta = new Vector2(24, 24);
         }
     }
 
@@ -451,8 +612,9 @@ public class LevelManager : MonoBehaviour {
 
 
     // 4) Symmetry puzzle: 6 chests with pictures; hint is one of 3 random symmetry puzzles; chests arranged randomly
-    void GenerateLevel4() {
-        List<string> zero = new List<string> { "г", "ж", "з", "и", "к", "л", "м", "н", "п", "с", "т", "у", "щ", "ч", "ш", "э"  }; // нет дырок
+    void GenerateLevel4()
+    {
+        List<string> zero = new List<string> { "г", "ж", "з", "и", "к", "л", "м", "н", "п", "с", "т", "у", "щ", "ч", "ш", "э" }; // нет дырок
         List<string> one = new List<string> { "а", "б", "д", "е", "о", "р", "ъ", "ю", "ь", "я" }; // одна дырка
         List<string> two = new List<string> { "в", "ф" };      // две дырки
 
@@ -464,14 +626,17 @@ public class LevelManager : MonoBehaviour {
         int targetHoles = UnityEngine.Random.Range(0, 3);
         // if targetHoles == 0 the correct letter must always be "щ"
         string correctLetter;
-        if (targetHoles == 0) {
+        if (targetHoles == 0)
+        {
             correctLetter = "щ";
-        } else {
+        }
+        else
+        {
             var pool = holeMap[targetHoles];
             correctLetter = pool[UnityEngine.Random.Range(0, pool.Count)];
         }
 
-        
+
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
 
@@ -482,7 +647,8 @@ public class LevelManager : MonoBehaviour {
 
         // build wrong-pool: all letters from other hole counts (so correctLetter appears only once)
         List<string> wrongPool = new List<string>();
-        for (int k = 0; k <= 2; k++) {
+        for (int k = 0; k <= 2; k++)
+        {
             if (k == targetHoles) continue;
             wrongPool.AddRange(holeMap[k]);
         }
@@ -490,17 +656,24 @@ public class LevelManager : MonoBehaviour {
         wrongPool.RemoveAll(s => s == correctLetter);
 
         // assign letters
-        for (int i = 0; i < list.Count; i++) {
+        for (int i = 0; i < list.Count; i++)
+        {
             var numChest = list[i].GetComponent<NumberChest>();
             if (numChest == null) continue;
-            if (i == correctLocal) {
+            if (i == correctLocal)
+            {
                 numChest.SetNumber(correctLetter);
-            } else {
+            }
+            else
+            {
                 // pick a wrong letter (may repeat among wrongs)
-                if (wrongPool.Count == 0) {
+                if (wrongPool.Count == 0)
+                {
                     // fallback: pick any letter that's not the correct one
-                    foreach (var kv in holeMap) {
-                        foreach (var ch in kv.Value) {
+                    foreach (var kv in holeMap)
+                    {
+                        foreach (var ch in kv.Value)
+                        {
                             if (ch != correctLetter) wrongPool.Add(ch);
                         }
                     }
@@ -515,12 +688,13 @@ public class LevelManager : MonoBehaviour {
     }
 
     // 5) Arrow path: 6x6 grid (36). hint is textual arrows from top-left to target (precompute path)
-    void GenerateLevel5() {
+    void GenerateLevel5()
+    {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         hintText.font = arrowFont;
         hintText.text = "Follow the arrows from top-left.";
-        var list = SpawnGrid(6,6,chestGenericPrefab);
+        var list = SpawnGrid(6, 6, chestGenericPrefab);
         int cols = 6;
         // choose random target cell (not 0)
         int target = UnityEngine.Random.Range(1, 36);
@@ -544,13 +718,15 @@ public class LevelManager : MonoBehaviour {
     }
 
     // returns list of grid indices from start to target (simple dx/dy greedy)
-    List<int> ComputePathIndices(int start, int target, int cols) {
+    List<int> ComputePathIndices(int start, int target, int cols)
+    {
         List<int> p = new List<int>();
         int sx = start % cols, sy = start / cols;
         int tx = target % cols, ty = target / cols;
         int x = sx, y = sy;
         p.Add(start);
-        while (x != tx || y != ty) {
+        while (x != tx || y != ty)
+        {
             if (x < tx) x++;
             else if (x > tx) x--;
             else if (y < ty) y++;
@@ -561,7 +737,8 @@ public class LevelManager : MonoBehaviour {
     }
 
     // строит длинный извилистый путь: делает случайные шаги, затем по кратчайшему пути идёт в цель
-    List<int> ComputeLongWindingPath(int start, int target, int cols, int minSteps) {
+    List<int> ComputeLongWindingPath(int start, int target, int cols, int minSteps)
+    {
         int rows = cols; // здесь поле квадратное 6x6, если нет — можно передать отдельно
         System.Random rnd = new System.Random();
         List<int> path = new List<int>();
@@ -570,7 +747,8 @@ public class LevelManager : MonoBehaviour {
         int prev = -1;
 
         int attempts = 0;
-        while (path.Count < minSteps && attempts < minSteps * 8) {
+        while (path.Count < minSteps && attempts < minSteps * 8)
+        {
             attempts++;
             // собрать доступные соседние клетки
             List<int> neigh = new List<int>();
@@ -590,11 +768,13 @@ public class LevelManager : MonoBehaviour {
             cur = next;
 
             // для дополнительной запутанности иногда делаем рывок в сторону цели, а затем снова в стороны
-            if (rnd.NextDouble() < 0.08) {
+            if (rnd.NextDouble() < 0.08)
+            {
                 var shortTail = ComputePathIndices(cur, target, cols);
                 // добавим пару первых шагов кратчайшего пути, чтобы не застрять
                 int take = Mathf.Min(2, shortTail.Count - 1);
-                for (int i = 1; i <= take; i++) {
+                for (int i = 1; i <= take; i++)
+                {
                     path.Add(shortTail[i]);
                     prev = cur;
                     cur = shortTail[i];
@@ -610,17 +790,20 @@ public class LevelManager : MonoBehaviour {
         // очистим повторяющиеся подряд элементы (на всякий случай)
         List<int> clean = new List<int>();
         int last = -1;
-        foreach (var v in path) {
+        foreach (var v in path)
+        {
             if (v != last) clean.Add(v);
             last = v;
         }
         return clean;
     }
 
-    string PathToArrowString(List<int> path, int cols) {
+    string PathToArrowString(List<int> path, int cols)
+    {
         string s = "";
-        for (int i = 0; i < path.Count-1; i++) {
-            int a = path[i], b = path[i+1];
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            int a = path[i], b = path[i + 1];
             int ax = a % cols, ay = a / cols;
             int bx = b % cols, by = b / cols;
             if (bx > ax) s += "> ";
@@ -632,13 +815,14 @@ public class LevelManager : MonoBehaviour {
     }
 
     // 6) Two shown not correct; there is 1 hidden chest somewhere barely visible
-    void GenerateLevel6() {
+    void GenerateLevel6()
+    {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-        hintText.text = "Не левый и не правый";
+        hintText.text = "Нажми на левый сундук... или может на правый...";
         // show two big chests (2 visible) and place hidden chest random (outside grid)
         // but user said "both chests and 1 hidden" — implement: spawn 2 large chests and spawn one hidden at random pos
-        var list = SpawnGrid(1,2,chestGenericPrefab); // two visible
+        var list = SpawnGrid(1, 2, chestGenericPrefab); // two visible
         // choose indices 0.. in spawned
         int not1 = 0, not2 = 1;
         // spawn hidden somewhere in chestParent bounds, ensuring not overlapping existing chests
@@ -796,7 +980,7 @@ public class LevelManager : MonoBehaviour {
     void GenerateLevel7()
     {
         hintText.text = "Which chest has the color resulting from mixing the two hint colors?";
-        hintImage.sprite = hintSprite; 
+        hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
 
         // Спавним 6 сундуков
@@ -866,7 +1050,7 @@ public class LevelManager : MonoBehaviour {
 
 
     // Создание маленького Image на подсказке
-    void CreateHintColorImage(Color color, string name, Vector2 anchoredPos) 
+    void CreateHintColorImage(Color color, string name, Vector2 anchoredPos)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(SpriteRenderer));
         go.tag = "ColorImage";
@@ -888,9 +1072,4 @@ public class LevelManager : MonoBehaviour {
         var list = SpawnGrid(1, 2, chestGenericPrefab);
         correctIndex = UnityEngine.Random.Range(0, 2);
     }
-    
-    void GenerateWin() {
-        hintText.text = "Congratulations! You've completed all levels!";
-    }
-
 }
