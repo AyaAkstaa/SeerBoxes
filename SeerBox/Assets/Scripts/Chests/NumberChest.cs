@@ -1,0 +1,12 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class NumberChest : Chest {
+    public TextMeshProUGUI numberLabel;
+    public void SetNumber(int v) {
+        if (numberLabel) numberLabel.text = v.ToString();
+        SetLabelText(""); // optional
+        gameObject.name = "NumberChest_" + v;
+    }
+}
