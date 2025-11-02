@@ -54,6 +54,8 @@ public class LevelManager : MonoBehaviour {
         RectTransform TextRect = hintText.GetComponent<RectTransform>();
         TextRect.sizeDelta = new Vector2(4.84f,7.35f);
         hintText.text = "";
+        var old = hintImage.transform.Find("HintX");
+        if (old) Destroy(old.gameObject);
     }
 
     public void StartLevel(int lvl) {
@@ -76,7 +78,7 @@ public class LevelManager : MonoBehaviour {
     // helper: spawn grid rows x cols with given prefab, returns list
     List<GameObject> SpawnGrid(int rows, int cols, GameObject prefab) {
         List<GameObject> list = new List<GameObject>();
-        float spacingX = 2f, spacingY = 1f;
+        float spacingX = 2.3f, spacingY = 1.8f;
         Vector2 origin = new Vector2(-(cols - 1) * spacingX / 2f, (rows - 1) * spacingY / 2f);
         int idx = 0;
 
