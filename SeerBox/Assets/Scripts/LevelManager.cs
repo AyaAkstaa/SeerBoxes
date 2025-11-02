@@ -281,7 +281,6 @@ public class LevelManager : MonoBehaviour {
     void GenerateLevel1() {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-
         correctIndex = UnityEngine.Random.Range(0, 2);
         if (correctIndex == 0)
             hintText.text = "Сокровище слева";
@@ -624,9 +623,9 @@ public class LevelManager : MonoBehaviour {
             int ax = a % cols, ay = a / cols;
             int bx = b % cols, by = b / cols;
             if (bx > ax) s += "→";
-            else if (bx < ax) s += "\u2193"; // down
+            else if (bx < ax) s += "←";
             else if (by > ay) s += "↓";
-            else s += "\u2192"; // up
+            else s += "↑";
         }
         return s;
     }
