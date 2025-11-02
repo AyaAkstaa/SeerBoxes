@@ -40,6 +40,44 @@ public class LevelManager : MonoBehaviour {
     [Header("Level 9 assets")]
     public Sprite twoColorsSprite; // for level 9 - shows two color circles
 
+    class MathTemplate
+    {
+        public string expr;
+        public Func<int, bool> predicate; // проверяет правильность
+        public int correctMin, correctMax; // диапазон, в котором берём правильное значение
+        public int distractorMin, distractorMax; // диапазон для генерации дистракторов
+        public MathTemplate(string e, Func<int, bool> pred, int cmin, int cmax, int dmin, int dmax)
+        {
+            expr = e; predicate = pred; correctMin = cmin; correctMax = cmax; distractorMin = dmin; distractorMax = dmax;
+        }
+    }
+
+
+    List<MathTemplate> GetMathTemplates()
+    {
+            return new List<MathTemplate> {
+            // 1) пример: результат ≤ 6
+            new MathTemplate("2 + 2 * 2 - ...", x => x <= 6, 1, 6, 7, 50),
+
+            // 2) "8-3*(6-1)+1..." (многоточие — продолжение недописанного числа, первая цифра 1)
+            //    Требование: 8 вариантов (дистракторы) — числа < 2, правильный — число >= 3
+            new MathTemplate("8 - 3*(6-1) + 1... ", x => x >= 3, 3, 50, -20, 1),
+
+            // 3) "65*4-20..." (многоточие — продолжение недописанного числа, первые цифры '20')
+            //    Требование: 8 вариантов — числа > 60, правильный — число <= 60
+            new MathTemplate("65 * 4 - 20...", x => x <= 60, 0, 60, 61, 200),
+
+            // 4) "496:16+..."  (496 / 16 = 31)
+            //    Требование: 8 вариантов — числа <= 31, правильный — число > 31
+            new MathTemplate("496 : 16 + ...", x => x > 31, 32, 200, -20, 31),
+
+            // 5) "(11-8+2)*0-..." (выражение даёт 0)
+            //    Требование: 8 вариантов — положительные числа, правильный — 0 или меньше
+            new MathTemplate("(11 - 8 + 2) * 0 - ...", x => x <= 0, -20, 0, 1, 80)
+        };
+    }
+
+
     void Start() {
         StartLevel(1);
     }
@@ -215,23 +253,107 @@ public class LevelManager : MonoBehaviour {
     }
 
     // 3) Math: 3x3 numbered chests; hint partial expression implies result <=6 => choose chest with number <=6 (only one such)
-    void GenerateLevel3() {
+    void GenerateLevel3()
+    {
+        var templates = GetMathTemplates();
+
+        // выбираем случайный шаблон (перемешивание индексов)
+        var order = new List<int>();
+        for (int i = 0; i < templates.Count; i++) order.Add(i);
+        for (int i = 0; i < order.Count; i++)
+        {
+            int j = UnityEngine.Random.Range(i, order.Count);
+            int tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+        }
+
+        MathTemplate chosen = null;
+        int correctValue = int.MinValue;
+
+        // Попытка найти корректное значение для каждого шаблона
+        foreach (int idx in order)
+        {
+            var t = templates[idx];
+            // сначала случайные попытки
+            for (int attempt = 0; attempt < 300; attempt++)
+            {
+                int cand = UnityEngine.Random.Range(t.correctMin, t.correctMax + 1);
+                if (t.predicate(cand)) { chosen = t; correctValue = cand; break; }
+            }
+            if (chosen != null) break;
+            // перебор как fallback
+            for (int v = t.correctMin; v <= t.correctMax; v++)
+            {
+                if (t.predicate(v)) { chosen = t; correctValue = v; break; }
+            }
+            if (chosen != null) break;
+        }
+
+        // если ничего не найдено — откатим к простому шаблону ≤6 (маловероятно)
+        if (chosen == null)
+        {
+            hintImage.sprite = hintSprite;
+            hintImage.color = Color.white;
+            hintText.text = "2 + 2 * 2 - ... (page torn). Result ≤ 6.";
+            var list = SpawnGrid(3, 3, chestNumberPrefab);
+            int correctLocal = UnityEngine.Random.Range(0, list.Count);
+            for (int i = 0; i < list.Count; i++)
+            {
+                int v = (i == correctLocal) ? UnityEngine.Random.Range(1, 7) : UnityEngine.Random.Range(7, 50);
+                var nc = list[i].GetComponent<NumberChest>(); if (nc != null) nc.SetNumber(v);
+            }
+            correctIndex = correctLocal;
+            return;
+        }
+
+        // Заполняем подсказку
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-        hintText.text = "2 + 2 * 2 - ... (page torn). Result is ≤ 6.";
-        // spawn 3x3 number chests
-        var list = SpawnGrid(3,3,chestNumberPrefab);
-        // generate 9 numbers so that exactly one <= 6
-        int correctLocal = UnityEngine.Random.Range(0,9);
-        for (int i = 0; i < list.Count; i++) {
+        hintText.text = chosen.expr;
+
+        // Спавним 3x3 и вставляем правильное значение в случайную ячейку
+        var spawnedList = SpawnGrid(3, 3, chestNumberPrefab);
+        int correctIdx = UnityEngine.Random.Range(0, spawnedList.Count);
+
+        HashSet<int> used = new HashSet<int>();
+        used.Add(correctValue);
+
+        for (int i = 0; i < spawnedList.Count; i++)
+        {
             int val;
-            if (i == correctLocal) val = UnityEngine.Random.Range(1,7); // 1..6 inclusive
-            else val = UnityEngine.Random.Range(7, 50); // >6
-            var nc = list[i].GetComponent<NumberChest>();
-            nc.SetNumber(val);
+            if (i == correctIdx)
+            {
+                val = correctValue;
+            }
+            else
+            {
+                // генерируем дистрактор в заданном диапазоне, проверяя, что он НЕ удовлетворяет predicate
+                int attempts = 0;
+                int minD = chosen.distractorMin;
+                int maxD = chosen.distractorMax;
+                if (minD > maxD) { minD = -100; maxD = 200; }
+                do
+                {
+                    val = UnityEngine.Random.Range(minD, maxD + 1);
+                    attempts++;
+                    // гарантируем, что дистрактор не проходит predicate и не дублирует значения
+                } while ((used.Contains(val) || chosen.predicate(val)) && attempts < 800);
+
+                if (attempts >= 800)
+                {
+                    // аварийный дистрактор: подобрать гарантированно не подходящее значение
+                    if (chosen.predicate(minD)) val = maxD + 100 + i;
+                    else val = minD - 100 - i;
+                }
+                used.Add(val);
+            }
+
+            var nc = spawnedList[i].GetComponent<NumberChest>();
+            if (nc != null) nc.SetNumber(val);
         }
-        correctIndex = correctLocal;
+
+        correctIndex = correctIdx;
     }
+
 
     // 4) Symmetry puzzle: 6 chests with pictures; hint is one of 3 random symmetry puzzles; chests arranged randomly
     void GenerateLevel4() {
