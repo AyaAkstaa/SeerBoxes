@@ -9,6 +9,7 @@ public class LevelManager : MonoBehaviour {
     [Header("UI")]
     public RectTransform chestParent;
     public Image hintImage;
+    public Sprite hintSprite;
     public TextMeshProUGUI hintText;
 
     [Header("Prefabs")]
@@ -24,10 +25,19 @@ public class LevelManager : MonoBehaviour {
     int currentLevel = 1;
 
     // example assets you must assign:
+    [Header("Level 2 assets")]
     public Sprite islandHintSprite;
+    public Sprite xMarkSprite; // for overlay on island map
+    [Header("Level 4 assets")]
     public Sprite[] symmetryHintSprites; // for level 4
+
+    [Header("Level 7 assets")]
     public Sprite[] iqHintSprites; // level 7
+
+    [Header("Level 8 assets")]
     public Sprite oddoneSprite; // template for 8 if needed
+
+    [Header("Level 9 assets")]
     public Sprite twoColorsSprite; // for level 9 - shows two color circles
 
     void Start() {
@@ -38,7 +48,11 @@ public class LevelManager : MonoBehaviour {
         foreach (var g in spawned) Destroy(g);
         spawned.Clear();
         correctIndex = -1;
+        RectTransform rect = hintImage.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(238,412);
         hintImage.sprite = null; hintImage.color = Color.clear;
+        RectTransform TextRect = hintText.GetComponent<RectTransform>();
+        TextRect.sizeDelta = new Vector2(4.84f,7.35f);
         hintText.text = "";
     }
 
@@ -123,15 +137,15 @@ public class LevelManager : MonoBehaviour {
         StartLevel(1);
     }
 
-    void NextLevel() {
+    public void NextLevel() {
         StartLevel(Mathf.Min(currentLevel + 1, 10));
     }
 
     // ====== LEVEL IMPLEMENTATIONS ======
 
-    // 1) Left/Right training: 2 identical chests
+    // +1) Left/Right training: 2 identical chests
     void GenerateLevel1() {
-        hintImage.sprite = islandHintSprite;
+        hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         correctIndex = UnityEngine.Random.Range(0, 2);
         if (correctIndex == 0)
@@ -144,8 +158,9 @@ public class LevelManager : MonoBehaviour {
 
     // 2) Island map: 5x5 grid, island image divided into 25 sectors, X at random sector.
     void GenerateLevel2() {
-        hintText.text = "Find the treasure on the island map.";
         hintImage.sprite = islandHintSprite;
+        RectTransform rect = hintImage.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(300,300);
         hintImage.color = Color.white;
         // spawn 5x5 same chest prefab
         var list = SpawnGrid(5,5,chestGenericPrefab);
@@ -164,8 +179,15 @@ public class LevelManager : MonoBehaviour {
         var go = new GameObject("HintX", typeof(RectTransform), typeof(Image));
         go.transform.SetParent(hintImage.transform, false);
         var img = go.GetComponent<Image>();
-        // assign simple colored X sprite or use a square rotated -> use color block as placeholder
-        img.color = new Color(1,0,0,0.7f);
+        // Use configured xMarkSprite when available, otherwise fall back to a colored placeholder
+        if (xMarkSprite != null) {
+            img.sprite = xMarkSprite;
+            img.color = Color.white;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+        } else {
+            img.color = new Color(1,0,0,0.7f);
+        }
         RectTransform rt = go.GetComponent<RectTransform>();
         // compute cell anchored pos
         int col = index % cols;
@@ -174,11 +196,26 @@ public class LevelManager : MonoBehaviour {
         float py = 0.5f - (row + 0.5f) / rows;
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f,0.5f);
         rt.anchoredPosition = new Vector2(px * hintImage.rectTransform.rect.width, py * hintImage.rectTransform.rect.height);
-        rt.sizeDelta = new Vector2(24,24);
+        // size: use sprite native size if available, otherwise fallback to small square
+        if (xMarkSprite != null) {
+            // sprite.rect is in pixels — clamp to a reasonable UI size so it doesn't dominate
+            Vector2 native = new Vector2(xMarkSprite.rect.width, xMarkSprite.rect.height);
+            // limit larger dimension to 64 px
+            float maxDim = 64f;
+            float scale = 1f;
+            if (native.x > native.y && native.x > maxDim) scale = maxDim / native.x;
+            else if (native.y > native.x && native.y > maxDim) scale = maxDim / native.y;
+            else if (native.x > maxDim && native.y > maxDim) scale = maxDim / Mathf.Max(native.x, native.y);
+            rt.sizeDelta = native * scale;
+        } else {
+            rt.sizeDelta = new Vector2(24,24);
+        }
     }
 
     // 3) Math: 3x3 numbered chests; hint partial expression implies result <=6 => choose chest with number <=6 (only one such)
     void GenerateLevel3() {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
         hintText.text = "2 + 2 * 2 - ... (page torn). Result is ≤ 6.";
         // spawn 3x3 number chests
         var list = SpawnGrid(3,3,chestNumberPrefab);
@@ -219,6 +256,8 @@ public class LevelManager : MonoBehaviour {
 
     // 5) Arrow path: 6x6 grid (36). hint is textual arrows from top-left to target (precompute path)
     void GenerateLevel5() {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
         hintText.text = "Follow the arrows from top-left.";
         var list = SpawnGrid(6,6,chestGenericPrefab);
         int cols = 6;
@@ -263,6 +302,8 @@ public class LevelManager : MonoBehaviour {
 
     // 6) Two shown not correct; there is 1 hidden chest somewhere barely visible
     void GenerateLevel6() {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
         hintText.text = "Both shown are NOT the treasure. There's a faint one somewhere else.";
         // show two big chests (2 visible) and place hidden chest random (outside grid)
         // but user said "both chests and 1 hidden" — implement: spawn 2 large chests and spawn one hidden at random pos
@@ -317,6 +358,8 @@ public class LevelManager : MonoBehaviour {
 
     // 8) Odd-one-out (5 chests). Use visual differences (size, border, shape). Answer is the one that is NOT highlighted.
     void GenerateLevel8() {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
         hintText.text = "Which one is special? (the trick: the correct one is the one not standing out)";
         // spawn 1x5
         var list = SpawnGrid(1,5,chestOddPrefab);
@@ -353,6 +396,8 @@ public class LevelManager : MonoBehaviour {
 
     // 10) No hint: two chests only with jokey text
     void GenerateLevel10() {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
         hintText.text = "\"Thought it'd be easy? Now real clairvoyance time.\"";
         var list = SpawnGrid(1,2,chestGenericPrefab);
         correctIndex = UnityEngine.Random.Range(0,2);
