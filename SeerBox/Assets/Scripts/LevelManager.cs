@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
 using TMPro;
+using System.Security.Cryptography;
 
 public class LevelManager : MonoBehaviour {
     [Header("UI")]
@@ -101,15 +102,25 @@ public class LevelManager : MonoBehaviour {
     }
 
 
-    void OnChestClicked(int idx) {
+    void OnChestClicked(int idx)
+    {
         Debug.Log("Clicked: " + idx);
-        if (idx == correctIndex) {
+        if (idx == correctIndex)
+        {
             hintText.text = "Correct!";
             // GO NEXT after small delay
-            Invoke(nameof(NextLevel), 0.6f);
-        } else {
-            hintText.text = "Nope";
+            NextLevel();
         }
+        else
+        {
+            Lose();
+        }
+    }
+    
+    void Lose() {
+        hintText.text = "Wrong! Restarting level.";
+
+        StartLevel(1);
     }
 
     void NextLevel() {
@@ -120,10 +131,15 @@ public class LevelManager : MonoBehaviour {
 
     // 1) Left/Right training: 2 identical chests
     void GenerateLevel1() {
-        Debug.Log("Generate Level 1");
-        hintText.text = "Pick left or right. Learn interaction.";
+        hintImage.sprite = islandHintSprite;
+        hintImage.color = Color.white;
+        correctIndex = UnityEngine.Random.Range(0, 2);
+        if (correctIndex == 0)
+            hintText.text = "Сокровище слева";
+        else
+            hintText.text = "Сокровище справа";
         var list = SpawnGrid(1,2,chestGenericPrefab);
-        correctIndex = UnityEngine.Random.Range(0,2);
+        
     }
 
     // 2) Island map: 5x5 grid, island image divided into 25 sectors, X at random sector.
