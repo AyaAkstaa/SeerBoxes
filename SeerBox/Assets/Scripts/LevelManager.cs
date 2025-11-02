@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 public class LevelManager : MonoBehaviour {
     [Header("UI")]
     public RectTransform chestParent;
+    public RectTransform chestZoneSize;
     public Image hintImage;
     public Sprite hintSprite;
     public TextMeshProUGUI hintText;
@@ -78,25 +79,111 @@ public class LevelManager : MonoBehaviour {
     // helper: spawn grid rows x cols with given prefab, returns list
     List<GameObject> SpawnGrid(int rows, int cols, GameObject prefab) {
         List<GameObject> list = new List<GameObject>();
-        float spacingX = 2.3f, spacingY = 1.8f;
+        float spacingX = 2.3f, spacingY = 1.6f; // оставил твои значения; интерпретация ниже
         Vector2 origin = new Vector2(-(cols - 1) * spacingX / 2f, (rows - 1) * spacingY / 2f);
         int idx = 0;
 
+        // --- Подготовка размеров зоны (UI-пиксели и мировые единицы) ---
+        bool haveZone = chestZoneSize != null;
+        Vector2 zoneSizeUI = Vector2.zero;      // в пикселях (для UI-элементов)
+        Vector2 zoneSizeWorld = Vector2.zero;   // в world units (для SpriteRenderer)
+
+        if (haveZone) {
+            zoneSizeUI = chestZoneSize.rect.size; // в локальных пикселях RectTransform
+
+            // получим world-ширину/высоту зоны, чтобы масштабировать world-префабы
+            Vector3[] corners = new Vector3[4];
+            chestZoneSize.GetWorldCorners(corners); // 0 = bottom-left, 2 = top-right
+            Vector3 bl = corners[0];
+            Vector3 tr = corners[2];
+            zoneSizeWorld = new Vector2(Mathf.Abs(tr.x - bl.x), Mathf.Abs(tr.y - bl.y));
+        }
+
+        // --- Получаем образец размеров префаба (по одному экземпляру, чтобы не инстанцировать лишние) ---
+        // Создадим временный экземпляр, чтобы измерить его "текущий" визуальный размер (учтём местный scale)
+        var sample = Instantiate(prefab);
+        sample.transform.SetParent(chestParent, false);
+        // сразу отключим видимость временного (чтобы не мелькнул)
+        sample.SetActive(false);
+
+        float sampleWidthUI = 0f, sampleHeightUI = 0f;
+        float sampleWidthWorld = 0f, sampleHeightWorld = 0f;
+        var sampleRect = sample.GetComponent<RectTransform>();
+        var sampleSpriteR = sample.GetComponentInChildren<SpriteRenderer>(); // ищем спрайт в children
+
+        if (sampleRect != null) {
+            // UI prefab: rect.rect даёт "unscaled" размер; учитываем localScale
+            Vector2 rectSize = sampleRect.rect.size;
+            Vector3 ls = sampleRect.localScale;
+            sampleWidthUI = rectSize.x * Mathf.Abs(ls.x);
+            sampleHeightUI = rectSize.y * Mathf.Abs(ls.y);
+        }
+        if (sampleSpriteR != null) {
+            // World prefab: bounds.size даёт размер в локальных единицах * текущий lossyScale
+            Vector3 bsize = sampleSpriteR.bounds.size; // уже с учётом lossy scale
+            // bounds.size учитывает мировой масштаб, но возьмём local size via sprite.bounds / transform.localScale
+            // для простоты используем bounds.size
+            sampleWidthWorld = Mathf.Abs(bsize.x);
+            sampleHeightWorld = Mathf.Abs(bsize.y);
+        }
+
+        // Удаляем временный образец
+        DestroyImmediate(sample);
+
+        // Если оба нулевые — предупредим
+        if (sampleWidthUI == 0f && sampleWidthWorld == 0f) {
+            Debug.LogWarning("SpawnGrid: не удалось определить размер префаба (нет RectTransform и нет SpriteRenderer). Масштабирование пропущено.");
+        }
+
+        // --- Вычисляем масштаб, чтобы сетка уместилась в chestZoneSize ---
+        float finalScale = 1f;
+        if (haveZone) {
+            // для UI-префабов:
+            if (sampleWidthUI > 0f && sampleHeightUI > 0f) {
+                float gridWidthUI = (cols - 1) * spacingX + sampleWidthUI;
+                float gridHeightUI = (rows - 1) * spacingY + sampleHeightUI;
+                float sx = zoneSizeUI.x / Mathf.Max(0.0001f, gridWidthUI);
+                float sy = zoneSizeUI.y / Mathf.Max(0.0001f, gridHeightUI);
+                float scaleUI = Mathf.Min(sx, sy);
+                // небольшой запас (чтобы не упёрлось в края)
+                scaleUI *= 0.95f;
+                finalScale = Mathf.Min(finalScale, scaleUI);
+            }
+            // для world-префабов:
+            if (sampleWidthWorld > 0f && sampleHeightWorld > 0f) {
+                float gridWidthWorld = (cols - 1) * spacingX + sampleWidthWorld;
+                float gridHeightWorld = (rows - 1) * spacingY + sampleHeightWorld;
+                float sxw = zoneSizeWorld.x / Mathf.Max(0.0001f, gridWidthWorld);
+                float syw = zoneSizeWorld.y / Mathf.Max(0.0001f, gridHeightWorld);
+                float scaleWorld = Mathf.Min(sxw, syw);
+                scaleWorld *= 0.95f;
+                finalScale = Mathf.Min(finalScale, scaleWorld);
+            }
+            // если всё нулевое — finalScale остается 1
+            finalScale = Mathf.Max(0.0001f, finalScale);
+        }
+
+        // --- Теперь инстанцируем реальную сетку и применим масштаб + позиционирование ---
+        List<GameObject> created = new List<GameObject>();
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 Vector2 pos = origin + new Vector2(c * spacingX, -r * spacingY);
 
-                // Instantiate and set parent without preserving world position
                 var go = Instantiate(prefab);
-                go.transform.SetParent(chestParent, false); // chestParent — RectTransform
+                go.transform.SetParent(chestParent, false);
 
-                // Если prefab — UI элемент (имеет RectTransform) — используем anchoredPosition
+                // обработка UI-префаба
                 var rect = go.GetComponent<RectTransform>();
                 if (rect != null) {
+                    // применяем масштаб (uniform)
+                    rect.localScale = Vector3.one * finalScale;
+
+                    // позиционируем в anchoredPosition (при этом pos должен быть в тех же единицах, что spacing)
                     rect.anchoredPosition = pos;
+
                 } else {
-                    // Иначе — обычный Transform (world object). Устанавливаем локальную позицию.
-                    // Применяем ту же систему координат: localPosition = (pos.x, pos.y, 0)
+                    // world-объект: изменим localScale и локальную позицию
+                    go.transform.localScale = go.transform.localScale * finalScale;
                     go.transform.localPosition = new Vector3(pos.x, pos.y, 0f);
                 }
 
@@ -108,6 +195,7 @@ public class LevelManager : MonoBehaviour {
                     Debug.LogWarning($"Spawned prefab '{prefab.name}' does not contain Chest component.");
                 }
 
+                created.Add(go);
                 list.Add(go);
                 idx++;
             }
@@ -129,7 +217,7 @@ public class LevelManager : MonoBehaviour {
         }
         else
         {
-            Lose();
+            //Lose();
         }
     }
     
@@ -235,26 +323,67 @@ public class LevelManager : MonoBehaviour {
 
     // 4) Symmetry puzzle: 6 chests with pictures; hint is one of 3 random symmetry puzzles; chests arranged randomly
     void GenerateLevel4() {
-        hintText.text = "Which picture matches symmetry clue?";
-        // choose one hint sprite at random
-        var spr = symmetryHintSprites[UnityEngine.Random.Range(0, symmetryHintSprites.Length)];
-        hintImage.sprite = spr; hintImage.color = Color.white;
-        // 6 chests, use ImageChest prefab
-        var list = SpawnGrid(2,3,chestImagePrefab); // 2 rows, 3 cols
-        // prepare 6 sprites: exactly one chest is symmetric according to hint; others are distractors
-        // For prototype: assign one correct sprite (choose index) and fill others with random sprites
-        int correctLocal = UnityEngine.Random.Range(0,6);
-        for (int i=0;i<list.Count;i++) {
-            var ic = list[i].GetComponent<ImageChest>();
-            if (i == correctLocal) ic.SetContent( GetSymmetricSpriteForHint(spr) );
-            else ic.SetContent( GetRandomDistractorSprite() );
+        List<string> zero = new List<string> { "г", "ж", "з", "и", "к", "л", "м", "н", "п", "с", "т", "у", "щ", "ч", "ш", "э"  }; // нет дырок
+        List<string> one = new List<string> { "а", "б", "д", "е", "о", "р", "ъ", "ю", "ь", "я" }; // одна дырка
+        List<string> two = new List<string> { "в", "ф" };      // две дырки
+
+        Dictionary<int, List<string>> holeMap = new Dictionary<int, List<string>> {
+            {0, zero}, {1, one}, {2, two}
+        };
+
+        // choose target holes 0..2 inclusive
+        int targetHoles = UnityEngine.Random.Range(0, 3);
+        // if targetHoles == 0 the correct letter must always be "щ"
+        string correctLetter;
+        if (targetHoles == 0) {
+            correctLetter = "щ";
+        } else {
+            var pool = holeMap[targetHoles];
+            correctLetter = pool[UnityEngine.Random.Range(0, pool.Count)];
         }
+
+        
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
+
+        // 6 chests in 2x3 grid
+        var list = SpawnGrid(2, 3, chestNumberPrefab);
+        int correctLocal = UnityEngine.Random.Range(0, list.Count);
+        hintText.text = $"{targetHoles}...";
+
+        // build wrong-pool: all letters from other hole counts (so correctLetter appears only once)
+        List<string> wrongPool = new List<string>();
+        for (int k = 0; k <= 2; k++) {
+            if (k == targetHoles) continue;
+            wrongPool.AddRange(holeMap[k]);
+        }
+        // ensure wrongPool does not accidentally contain the correctLetter
+        wrongPool.RemoveAll(s => s == correctLetter);
+
+        // assign letters
+        for (int i = 0; i < list.Count; i++) {
+            var numChest = list[i].GetComponent<NumberChest>();
+            if (numChest == null) continue;
+            if (i == correctLocal) {
+                numChest.SetNumber(correctLetter);
+            } else {
+                // pick a wrong letter (may repeat among wrongs)
+                if (wrongPool.Count == 0) {
+                    // fallback: pick any letter that's not the correct one
+                    foreach (var kv in holeMap) {
+                        foreach (var ch in kv.Value) {
+                            if (ch != correctLetter) wrongPool.Add(ch);
+                        }
+                    }
+                    wrongPool.RemoveAll(s => s == correctLetter);
+                }
+                string letter = wrongPool[UnityEngine.Random.Range(0, wrongPool.Count)];
+                numChest.SetNumber(letter);
+            }
+        }
+
         correctIndex = correctLocal;
     }
-
-    // helper stubs (implement asset selection)
-    Sprite GetSymmetricSpriteForHint(Sprite hint) { return hint; /* or map hint->correct sprite */ }
-    Sprite GetRandomDistractorSprite() { return symmetryHintSprites[UnityEngine.Random.Range(0, symmetryHintSprites.Length)]; }
 
     // 5) Arrow path: 6x6 grid (36). hint is textual arrows from top-left to target (precompute path)
     void GenerateLevel5() {
@@ -266,10 +395,22 @@ public class LevelManager : MonoBehaviour {
         // choose random target cell (not 0)
         int target = UnityEngine.Random.Range(1, 36);
         correctIndex = target;
-        // compute simple shortest path from 0 to target (grid)
-        var path = ComputePathIndices(0, target, 6);
-        // build arrows string or draw arrow sprites in hintImage / hintText
-        hintText.text = "Path: " + PathToArrowString(path, 6);
+
+        // короткий путь (для визуального подсказа) — самый прямой
+        var shortPath = ComputePathIndices(0, target, cols);
+
+        // длинный извилистый путь (на самом деле ведущий в ту же точку),
+        // который можно использовать, если нужно "подглядеть" реальный маршрут.
+        // Длинный путь строится как случайная блуждающая дорожка, а затем доводится до цели.
+        int minLongSteps = Mathf.Clamp(shortPath.Count * 3, 12, 60); // минимум шагов в длинном пути
+        var longPath = ComputeLongWindingPath(0, target, cols, minLongSteps);
+
+        // показываем пользователю короткий, компактный набор стрелок, но при этом
+        // реально существует длинный запутанный маршрут (longPath) который всё равно ведёт в target.
+        hintText.text = "Path: " + PathToArrowString(longPath, cols);
+
+        // при необходимости можно сохранить longPath куда-то (например в лог) для отладки:
+        // Debug.Log("Long path length: " + longPath.Count + "  -> " + PathToArrowString(longPath, cols));
     }
 
     // returns list of grid indices from start to target (simple dx/dy greedy)
@@ -288,6 +429,64 @@ public class LevelManager : MonoBehaviour {
         }
         return p;
     }
+
+    // строит длинный извилистый путь: делает случайные шаги, затем по кратчайшему пути идёт в цель
+    List<int> ComputeLongWindingPath(int start, int target, int cols, int minSteps) {
+        int rows = cols; // здесь поле квадратное 6x6, если нет — можно передать отдельно
+        System.Random rnd = new System.Random();
+        List<int> path = new List<int>();
+        int cur = start;
+        path.Add(cur);
+        int prev = -1;
+
+        int attempts = 0;
+        while (path.Count < minSteps && attempts < minSteps * 8) {
+            attempts++;
+            // собрать доступные соседние клетки
+            List<int> neigh = new List<int>();
+            int x = cur % cols, y = cur / cols;
+            if (x > 0) neigh.Add(cur - 1);
+            if (x < cols - 1) neigh.Add(cur + 1);
+            if (y > 0) neigh.Add(cur - cols);
+            if (y < rows - 1) neigh.Add(cur + cols);
+
+            // исключить мгновенный возврат туда, откуда пришли (уменьшит тривиальные циклы)
+            if (prev != -1 && neigh.Contains(prev) && neigh.Count > 1) neigh.Remove(prev);
+
+            if (neigh.Count == 0) break;
+            int next = neigh[rnd.Next(neigh.Count)];
+            path.Add(next);
+            prev = cur;
+            cur = next;
+
+            // для дополнительной запутанности иногда делаем рывок в сторону цели, а затем снова в стороны
+            if (rnd.NextDouble() < 0.08) {
+                var shortTail = ComputePathIndices(cur, target, cols);
+                // добавим пару первых шагов кратчайшего пути, чтобы не застрять
+                int take = Mathf.Min(2, shortTail.Count - 1);
+                for (int i = 1; i <= take; i++) {
+                    path.Add(shortTail[i]);
+                    prev = cur;
+                    cur = shortTail[i];
+                }
+            }
+        }
+
+        // в конце примыкаем кратчайшим путем от текущей клетки до цели
+        var finish = ComputePathIndices(cur, target, cols);
+        // finish[0] == cur, поэтому добавляем с 1
+        for (int i = 1; i < finish.Count; i++) path.Add(finish[i]);
+
+        // очистим повторяющиеся подряд элементы (на всякий случай)
+        List<int> clean = new List<int>();
+        int last = -1;
+        foreach (var v in path) {
+            if (v != last) clean.Add(v);
+            last = v;
+        }
+        return clean;
+    }
+
     string PathToArrowString(List<int> path, int cols) {
         string s = "";
         for (int i = 0; i < path.Count-1; i++) {
