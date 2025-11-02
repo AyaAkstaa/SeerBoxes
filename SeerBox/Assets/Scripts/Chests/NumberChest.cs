@@ -9,4 +9,9 @@ public class NumberChest : Chest {
         SetLabelText(""); // optional
         gameObject.name = "NumberChest_" + v;
     }
+    public void SetNumber(string s) {
+        if (numberLabel) numberLabel.text = s;
+        SetLabelText(""); // optional
+        gameObject.name = "NumberChest_" + s;
+    }
 }
