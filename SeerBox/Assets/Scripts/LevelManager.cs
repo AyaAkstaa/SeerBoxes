@@ -43,7 +43,9 @@ public class LevelManager : MonoBehaviour {
     public Sprite oddoneSprite; // template for 8 if needed
 
     [Header("Level 9 assets")]
-    public Sprite twoColorsSprite; // for level 9 - shows two color circles
+    //public Sprite twoColorsSprite; // for level 9 - shows two color circles
+    public Image colorImage1;
+    public Image colorImage2;
 
     class MathTemplate
     {
@@ -101,6 +103,11 @@ public class LevelManager : MonoBehaviour {
         hintText.UpdateFontAsset();
         var old = hintImage.transform.Find("HintX");
         if (old) Destroy(old.gameObject);
+        var existsColors = GameObject.FindGameObjectsWithTag("ColorImage");
+        foreach (GameObject colorImage in existsColors)
+        {
+            Destroy(colorImage);
+        }
     }
 
     public void StartLevel(int lvl) {
@@ -687,16 +694,18 @@ public class LevelManager : MonoBehaviour {
     Sprite GetIQDistractorSprite() { return iqHintSprites[ UnityEngine.Random.Range(0, iqHintSprites.Length) ]; }
 
     // 8) Odd-one-out (5 chests). Use visual differences (size, border, shape). Answer is the one that is NOT highlighted.
-    void GenerateLevel8() {
+    void GenerateLevel8()
+    {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         hintText.text = "Which one is special? (the trick: the correct one is the one not standing out)";
         // spawn 1x5
-        var list = SpawnGrid(1,5,chestOddPrefab);
+        var list = SpawnGrid(1, 5, chestOddPrefab);
         // create one "normal" and 4 "variations" or vice versa. Per user's instruction: correct is that which is nothing special (i.e., non-distinct)
         // Approach: make 4 chests have an obvious difference; 1 chest is plain -> that plain one is correct
-        int plainIndex = UnityEngine.Random.Range(0,5);
-        for (int i=0;i<list.Count;i++) {
+        int plainIndex = UnityEngine.Random.Range(0, 5);
+        for (int i = 0; i < list.Count; i++)
+        {
             var odd = list[i].GetComponent<OddChest>();
             if (i == plainIndex) odd.SetNormalAppearance();
             else odd.SetVariantAppearance(i); // different patterns
@@ -705,25 +714,109 @@ public class LevelManager : MonoBehaviour {
     }
 
     // 9) Color-XOR / color-mix: 6 colored chests, hint shows two colors; answer is chest whose color equals computed mix
-    void GenerateLevel9() {
-        hintText.text = "Which color is the product of these two?";
-        hintImage.sprite = twoColorsSprite; hintImage.color = Color.white;
-        var list = SpawnGrid(2,3,chestColorPrefab);
-        // define two base colors (random)
-        Color A = Color.red;
-        Color B = Color.blue;
-        // compute target color as XOR or average — choose XOR-like but for visual simplicity do average or complementary
-        Color target = new Color( (A.r + B.r)/2f, (A.g + B.g)/2f, (A.b + B.b)/2f );
-        // ensure exactly one chest approximates target; fill others with random colors
-        int match = UnityEngine.Random.Range(0, list.Count);
-        for (int i=0;i<list.Count;i++) {
-            var cc = list[i].GetComponent<ColorChest>();
-            if (i == match) cc.SetColor(target);
-            else cc.SetColor(UnityEngine.Random.ColorHSV(0f,1f,0.35f,1f,0.35f,1f));
+    // void GenerateLevel9() {
+    //     hintText.text = "Which color is the product of these two?";
+    //     hintImage.sprite = twoColorsSprite; hintImage.color = Color.white;
+    //     var list = SpawnGrid(2,3,chestColorPrefab);
+    //     // define two base colors (random)
+    //     Color A = Color.red;
+    //     Color B = Color.blue;
+    //     // compute target color as XOR or average — choose XOR-like but for visual simplicity do average or complementary
+    //     Color target = new Color( (A.r + B.r)/2f, (A.g + B.g)/2f, (A.b + B.b)/2f );
+    //     // ensure exactly one chest approximates target; fill others with random colors
+    //     int match = UnityEngine.Random.Range(0, list.Count);
+    //     for (int i=0;i<list.Count;i++) {
+    //         var cc = list[i].GetComponent<ColorChest>();
+    //         if (i == match) cc.SetColor(target);
+    //         else cc.SetColor(UnityEngine.Random.ColorHSV(0f,1f,0.35f,1f,0.35f,1f));
+    //     }
+    //     correctIndex = match;
+    // }
+
+
+    void GenerateLevel9()
+    {
+        hintText.text = "Which chest has the color resulting from mixing the two hint colors?";
+        hintImage.sprite = hintSprite; 
+        hintImage.color = Color.white;
+
+        // Спавним 6 сундуков
+        var list = SpawnGrid(2, 3, chestColorPrefab);
+
+        // Определяем два случайных цвета для подсказки
+        Color colorA = UnityEngine.Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
+        Color colorB = UnityEngine.Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
+
+        // Цвет правильного сундука — смесь
+        Color mixed = new Color(
+            (colorA.r + colorB.r) / 2f,
+            (colorA.g + colorB.g) / 2f,
+            (colorA.b + colorB.b) / 2f
+        );
+
+        // Случайно выбираем индекс правильного сундука
+        int correct = UnityEngine.Random.Range(0, list.Count);
+
+        // Создаем массив цветов для 6 сундуков
+        List<Color> colors = new List<Color>();
+        colors.Add(mixed);   // правильный
+        colors.Add(colorA);
+        colors.Add(colorB);
+
+        // Генерируем 3 уникальных случайных цвета для остальных сундуков
+        while (colors.Count < 6)
+        {
+            Color rnd = UnityEngine.Random.ColorHSV(0f, 1f, 0.35f, 1f, 0.35f, 1f);
+            bool exists = false;
+            foreach (var c in colors)
+            {
+                if (ApproximatelyEqualColors(c, rnd)) { exists = true; break; }
+            }
+            if (!exists) colors.Add(rnd);
         }
-        correctIndex = match;
+
+        // Перемешиваем порядок цветов случайным образом
+        for (int i = 0; i < colors.Count; i++)
+        {
+            int j = UnityEngine.Random.Range(i, colors.Count);
+            var temp = colors[i];
+            colors[i] = colors[j];
+            colors[j] = temp;
+        }
+
+        // Назначаем цвета сундукам
+        for (int i = 0; i < list.Count; i++)
+        {
+            var cc = list[i].GetComponent<ColorChest>();
+            cc.SetColor(colors[i]);
+            if (ApproximatelyEqualColors(colors[i], mixed)) correctIndex = i;
+        }
+
+        // Создаем два цветных изображения в подсказке (как во 2-м уровне)
+        CreateHintColorImage(colorA, "HintColor1", new Vector2(-50, 0));
+        CreateHintColorImage(colorB, "HintColor2", new Vector2(50, 0));
     }
 
+    // Проверка приближенного равенства цветов
+    bool ApproximatelyEqualColors(Color c1, Color c2, float tolerance = 0.01f)
+    {
+        return Mathf.Abs(c1.r - c2.r) < tolerance &&
+               Mathf.Abs(c1.g - c2.g) < tolerance &&
+               Mathf.Abs(c1.b - c2.b) < tolerance;
+    }
+
+
+    // Создание маленького Image на подсказке
+    void CreateHintColorImage(Color color, string name, Vector2 anchoredPos)
+    {
+        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(hintImage.transform, false);
+        var img = go.GetComponent<Image>();
+        img.color = color;
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(40, 40);
+        rt.anchoredPosition = anchoredPos;
+    }
     // 10) No hint: two chests only with jokey text
     void GenerateLevel10() {
         hintImage.sprite = hintSprite;
