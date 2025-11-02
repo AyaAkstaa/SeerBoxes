@@ -13,6 +13,10 @@ public class LevelManager : MonoBehaviour {
     public Sprite hintSprite;
     public TextMeshProUGUI hintText;
 
+    [Header("Fonts")]
+    public TMP_FontAsset standartFont;
+    public TMP_FontAsset arrowFont;
+
     [Header("Prefabs")]
     public GameObject chestGenericPrefab;
     public GameObject chestNumberPrefab;
@@ -32,10 +36,6 @@ public class LevelManager : MonoBehaviour {
     [Header("Level 4 assets")]
     public Sprite[] symmetryHintSprites; // for level 4
 
-    [Header("Level 6 settings")]
-    public RectTransform hiddenChestArea;    // область спавна скрытого сундука
-    public float hiddenChestAlpha = 0.25f;   // прозрачность скрытого
-
     [Header("Level 7 assets")]
     public Sprite[] iqHintSprites; // level 7
 
@@ -43,9 +43,7 @@ public class LevelManager : MonoBehaviour {
     public Sprite oddoneSprite; // template for 8 if needed
 
     [Header("Level 9 assets")]
-    //public Sprite twoColorsSprite; // for level 9 - shows two color circles
-    public Image image1;
-    public Image image2;
+    public Sprite twoColorsSprite; // for level 9 - shows two color circles
 
     class MathTemplate
     {
@@ -62,7 +60,7 @@ public class LevelManager : MonoBehaviour {
 
     List<MathTemplate> GetMathTemplates()
     {
-        return new List<MathTemplate> {
+            return new List<MathTemplate> {
             // 1) пример: результат ≤ 6
             new MathTemplate("2 + 2 * 2 - ...", x => x <= 6, 1, 6, 7, 50),
 
@@ -84,39 +82,25 @@ public class LevelManager : MonoBehaviour {
         };
     }
 
+
     void Start() {
         StartLevel(1);
     }
 
-    void Clear()
-    {
+    void Clear() {
         foreach (var g in spawned) Destroy(g);
         spawned.Clear();
         correctIndex = -1;
-
-        // Сбрасываем hintImage
         RectTransform rect = hintImage.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(238, 412);
-        hintImage.sprite = null;
-        hintImage.color = Color.clear;
-
-        // Сбрасываем hintText
+        rect.sizeDelta = new Vector2(238,412);
+        hintImage.sprite = null; hintImage.color = Color.clear;
         RectTransform TextRect = hintText.GetComponent<RectTransform>();
-        TextRect.sizeDelta = new Vector2(4.84f, 7.35f);
+        TextRect.sizeDelta = new Vector2(4.84f,7.35f);
         hintText.text = "";
-
-        // Удаляем старый X (для уровня 2)
+        hintText.font = standartFont;
+        hintText.UpdateFontAsset();
         var old = hintImage.transform.Find("HintX");
         if (old) Destroy(old.gameObject);
-
-        // Удаляем подсказочные цветные изображения (для уровня 9)
-        foreach (Transform child in hintImage.transform)
-        {
-            if (child.name == "HintColor1" || child.name == "HintColor2")
-            {
-                Destroy(child.gameObject);
-            }
-        }
     }
 
     public void StartLevel(int lvl) {
@@ -277,7 +261,7 @@ public class LevelManager : MonoBehaviour {
         }
         else
         {
-            //Lose();
+            Lose();
         }
     }
     
@@ -297,6 +281,7 @@ public class LevelManager : MonoBehaviour {
     void GenerateLevel1() {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
+
         correctIndex = UnityEngine.Random.Range(0, 2);
         if (correctIndex == 0)
             hintText.text = "Сокровище слева";
@@ -533,6 +518,7 @@ public class LevelManager : MonoBehaviour {
     void GenerateLevel5() {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
+        hintText.font = arrowFont;
         hintText.text = "Follow the arrows from top-left.";
         var list = SpawnGrid(6,6,chestGenericPrefab);
         int cols = 6;
@@ -551,7 +537,7 @@ public class LevelManager : MonoBehaviour {
 
         // показываем пользователю короткий, компактный набор стрелок, но при этом
         // реально существует длинный запутанный маршрут (longPath) который всё равно ведёт в target.
-        hintText.text = "Path: " + PathToArrowString(longPath, cols);
+        hintText.text = PathToArrowString(longPath, cols);
 
         // при необходимости можно сохранить longPath куда-то (например в лог) для отладки:
         // Debug.Log("Long path length: " + longPath.Count + "  -> " + PathToArrowString(longPath, cols));
@@ -637,58 +623,33 @@ public class LevelManager : MonoBehaviour {
             int a = path[i], b = path[i+1];
             int ax = a % cols, ay = a / cols;
             int bx = b % cols, by = b / cols;
-            if (bx > ax) s += ">";
-            else if (bx < ax) s += "<";
-            else if (by > ay) s += "\\/";
-            else s += "/\\";
+            if (bx > ax) s += "→";
+            else if (bx < ax) s += "\u2193"; // down
+            else if (by > ay) s += "↓";
+            else s += "\u2192"; // up
         }
         return s;
     }
 
     // 6) Two shown not correct; there is 1 hidden chest somewhere barely visible
-    void GenerateLevel6()
-    {
+    void GenerateLevel6() {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-        hintText.text = "Оба сундука НЕ верные. Где-то есть почти невидимый третий...";
-
-        // Спавним 2 видимых сундука
-        var list = SpawnGrid(1, 2, chestGenericPrefab);
-
-        // правильный — скрытый сундук
-        correctIndex = 2;
-
-        // генерируем позицию внутри hiddenChestArea
-        Vector2 hiddenPos = GetRandomPointInArea(hiddenChestArea);
-
-        // создаём скрытый сундук
+        hintText.text = "Both shown are NOT the treasure. There's a faint one somewhere else.";
+        // show two big chests (2 visible) and place hidden chest random (outside grid)
+        // but user said "both chests and 1 hidden" — implement: spawn 2 large chests and spawn one hidden at random pos
+        var list = SpawnGrid(1,2,chestGenericPrefab); // two visible
+        // choose indices 0.. in spawned
+        int not1 = 0, not2 = 1;
+        // spawn hidden somewhere in chestParent bounds, ensuring not overlapping existing chests
+        Vector2 hiddenPos = FindRandomFreeSpot();
         var hiddenGo = Instantiate(chestHiddenPrefab, chestParent);
-        var rt = hiddenGo.GetComponent<RectTransform>();
-        rt.anchoredPosition = hiddenPos;
-
-        // инициализация как сундук номер 2
-        var chest = hiddenGo.GetComponent<Chest>();
-        chest.Init(2, OnChestClicked);
-
+        hiddenGo.GetComponent<RectTransform>().anchoredPosition = hiddenPos;
+        var hiddenChest = hiddenGo.GetComponent<Chest>();
+        hiddenChest.Init(2, OnChestClicked); // index 2
         spawned.Add(hiddenGo);
-    }
-    Vector2 GetRandomPointInArea(RectTransform area)
-    {
-        // 1. Берём локальные размеры области
-        Rect r = area.rect;
-
-        // 2. Случайная точка ВНУТРИ локального прямоугольника
-        float lx = UnityEngine.Random.Range(r.xMin, r.xMax);
-        float ly = UnityEngine.Random.Range(r.yMin, r.yMax);
-        Vector2 localPoint = new Vector2(lx, ly);
-
-        // 3. Переводим локальную точку → мировые координаты UI
-        Vector3 worldPoint = area.TransformPoint(localPoint);
-
-        // 4. Мировую точку → локальные координаты chestParent (где стоит сундук)
-        Vector2 anchored = chestParent.InverseTransformPoint(worldPoint);
-
-        return anchored;
+        // correct chest is hidden one
+        correctIndex = 2;
     }
 
     Vector2 FindRandomFreeSpot() {
@@ -724,7 +685,7 @@ public class LevelManager : MonoBehaviour {
     }
 
     Sprite GetIQCorrectSprite() { return iqHintSprites[0]; }
-    Sprite GetIQDistractorSprite() { return iqHintSprites[UnityEngine.Random.Range(0, iqHintSprites.Length)]; }
+    Sprite GetIQDistractorSprite() { return iqHintSprites[ UnityEngine.Random.Range(0, iqHintSprites.Length) ]; }
 
     // 8) Odd-one-out (5 chests). Use visual differences (size, border, shape). Answer is the one that is NOT highlighted.
     void GenerateLevel8() {
@@ -745,111 +706,24 @@ public class LevelManager : MonoBehaviour {
     }
 
     // 9) Color-XOR / color-mix: 6 colored chests, hint shows two colors; answer is chest whose color equals computed mix
-    // void GenerateLevel9() {
-    //     hintText.text = "Which color is the product of these two?";
-    //     hintImage.sprite = twoColorsSprite; hintImage.color = Color.white;
-    //     var list = SpawnGrid(2,3,chestColorPrefab);
-    //     // define two base colors (random)
-    //     Color A = Color.red;
-    //     Color B = Color.blue;
-    //     // compute target color as XOR or average — choose XOR-like but for visual simplicity do average or complementary
-    //     Color target = new Color( (A.r + B.r)/2f, (A.g + B.g)/2f, (A.b + B.b)/2f );
-    //     // ensure exactly one chest approximates target; fill others with random colors
-    //     int match = UnityEngine.Random.Range(0, list.Count);
-    //     for (int i=0;i<list.Count;i++) {
-    //         var cc = list[i].GetComponent<ColorChest>();
-    //         if (i == match) cc.SetColor(target);
-    //         else cc.SetColor(UnityEngine.Random.ColorHSV(0f,1f,0.35f,1f,0.35f,1f));
-    //     }
-    //     correctIndex = match;
-    // }
-
-    void GenerateLevel9()
-    {
-        hintText.text = "Which chest has the color resulting from mixing the two hint colors?";
-        hintImage.sprite = hintSprite; 
-        hintImage.color = Color.white;
-
-        // Спавним 6 сундуков
-        var list = SpawnGrid(2, 3, chestColorPrefab);
-
-        // Определяем два случайных цвета для подсказки
-        Color colorA = UnityEngine.Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
-        Color colorB = UnityEngine.Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
-
-        // Цвет правильного сундука — смесь
-        Color mixed = new Color(
-            (colorA.r + colorB.r) / 2f,
-            (colorA.g + colorB.g) / 2f,
-            (colorA.b + colorB.b) / 2f
-        );
-
-        // Случайно выбираем индекс правильного сундука
-        int correct = UnityEngine.Random.Range(0, list.Count);
-
-        // Создаем массив цветов для 6 сундуков
-        List<Color> colors = new List<Color>();
-        colors.Add(mixed);   // правильный
-        colors.Add(colorA);
-        colors.Add(colorB);
-
-        // Генерируем 3 уникальных случайных цвета для остальных сундуков
-        while (colors.Count < 6)
-        {
-            Color rnd = UnityEngine.Random.ColorHSV(0f, 1f, 0.35f, 1f, 0.35f, 1f);
-            bool exists = false;
-            foreach (var c in colors)
-            {
-                if (ApproximatelyEqualColors(c, rnd)) { exists = true; break; }
-            }
-            if (!exists) colors.Add(rnd);
-        }
-
-        // Перемешиваем порядок цветов случайным образом
-        for (int i = 0; i < colors.Count; i++)
-        {
-            int j = UnityEngine.Random.Range(i, colors.Count);
-            var temp = colors[i];
-            colors[i] = colors[j];
-            colors[j] = temp;
-        }
-
-        // Назначаем цвета сундукам
-        for (int i = 0; i < list.Count; i++)
-        {
+    void GenerateLevel9() {
+        hintText.text = "Which color is the product of these two?";
+        hintImage.sprite = twoColorsSprite; hintImage.color = Color.white;
+        var list = SpawnGrid(2,3,chestColorPrefab);
+        // define two base colors (random)
+        Color A = Color.red;
+        Color B = Color.blue;
+        // compute target color as XOR or average — choose XOR-like but for visual simplicity do average or complementary
+        Color target = new Color( (A.r + B.r)/2f, (A.g + B.g)/2f, (A.b + B.b)/2f );
+        // ensure exactly one chest approximates target; fill others with random colors
+        int match = UnityEngine.Random.Range(0, list.Count);
+        for (int i=0;i<list.Count;i++) {
             var cc = list[i].GetComponent<ColorChest>();
-            cc.SetColor(colors[i]);
-            if (ApproximatelyEqualColors(colors[i], mixed)) correctIndex = i;
+            if (i == match) cc.SetColor(target);
+            else cc.SetColor(UnityEngine.Random.ColorHSV(0f,1f,0.35f,1f,0.35f,1f));
         }
-
-        // Создаем два цветных изображения в подсказке (как во 2-м уровне)
-        CreateHintColorImage(colorA, "HintColor1", new Vector2(-50, 0));
-        CreateHintColorImage(colorB, "HintColor2", new Vector2(50, 0));
+        correctIndex = match;
     }
-
-    // Проверка приближенного равенства цветов
-    bool ApproximatelyEqualColors(Color c1, Color c2, float tolerance = 0.01f)
-    {
-        return Mathf.Abs(c1.r - c2.r) < tolerance &&
-               Mathf.Abs(c1.g - c2.g) < tolerance &&
-               Mathf.Abs(c1.b - c2.b) < tolerance;
-    }
-
-
-    // Создание маленького Image на подсказке
-    void CreateHintColorImage(Color color, string name, Vector2 anchoredPos)
-    {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(hintImage.transform, false);
-        var img = go.GetComponent<Image>();
-        img.color = color;
-        RectTransform rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(40, 40);
-        rt.anchoredPosition = anchoredPos;
-    }
-
-
-    
 
     // 10) No hint: two chests only with jokey text
     void GenerateLevel10() {
