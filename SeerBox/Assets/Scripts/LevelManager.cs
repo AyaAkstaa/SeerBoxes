@@ -666,15 +666,6 @@ public class LevelManager : MonoBehaviour {
         var rt = hiddenGo.GetComponent<RectTransform>();
         rt.anchoredPosition = hiddenPos;
 
-        // задаём прозрачность
-        var img = hiddenGo.GetComponent<Image>();
-        if (img != null)
-        {
-            Color c = img.color;
-            c.a = hiddenChestAlpha;
-            img.color = c;
-        }
-
         // инициализация как сундук номер 2
         var chest = hiddenGo.GetComponent<Chest>();
         chest.Init(2, OnChestClicked);
