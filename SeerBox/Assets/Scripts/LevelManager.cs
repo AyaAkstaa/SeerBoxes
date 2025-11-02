@@ -623,9 +623,9 @@ public class LevelManager : MonoBehaviour {
             int ax = a % cols, ay = a / cols;
             int bx = b % cols, by = b / cols;
             if (bx > ax) s += "→";
-            else if (bx < ax) s += "←";
+            else if (bx < ax) s += "\u2190";
             else if (by > ay) s += "↓";
-            else s += "↑";
+            else s += "\u2191";
         }
         return s;
     }
