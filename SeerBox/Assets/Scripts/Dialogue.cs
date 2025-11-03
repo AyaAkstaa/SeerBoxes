@@ -14,6 +14,7 @@ public class Dialogue : MonoBehaviour
     private bool isTyping = false;
     private Coroutine typingCoroutine;
     private bool skipRequested = false;
+    private bool isComplete = false;
 
     // Событие завершения диалога
     public System.Action OnDialogueComplete;
@@ -62,7 +63,7 @@ public class Dialogue : MonoBehaviour
         {
             skipRequested = true;
         }
-        else
+        else if (!isComplete)
         {
             NextLine();
         }
@@ -79,7 +80,7 @@ public class Dialogue : MonoBehaviour
 
         if (lines == null || lines.Length == 0) 
         {
-            OnDialogueComplete?.Invoke();
+            CompleteDialogue();
             return;
         }
         
@@ -90,6 +91,7 @@ public class Dialogue : MonoBehaviour
         }
         isTyping = false;
         skipRequested = false;
+        isComplete = false;
         
         if (typingCoroutine != null)
             StopCoroutine(typingCoroutine);
@@ -101,7 +103,7 @@ public class Dialogue : MonoBehaviour
     {
         if (lines == null || lines.Length == 0 || textTMP == null) 
         {
-            OnDialogueComplete?.Invoke();
+            CompleteDialogue();
             yield break;
         }
 
@@ -142,9 +144,15 @@ public class Dialogue : MonoBehaviour
         }
         else
         {
-            // Диалог завершен - ВЫЗЫВАЕМ СОБЫТИЕ
-            OnDialogueComplete?.Invoke();
+            // Диалог завершен
+            CompleteDialogue();
         }
+    }
+
+    void CompleteDialogue()
+    {
+        isComplete = true;
+        OnDialogueComplete?.Invoke();
     }
 
     // Метод для принудительной установки новых строк
@@ -159,6 +167,7 @@ public class Dialogue : MonoBehaviour
         index = 0;
         isTyping = false;
         skipRequested = false;
+        isComplete = false;
         
         if (textTMP != null)
         {
@@ -174,5 +183,28 @@ public class Dialogue : MonoBehaviour
         {
             Debug.LogWarning("Cannot start dialogue on inactive GameObject");
         }
+    }
+
+    // Метод для проверки, завершен ли диалог
+    public bool IsDialogueComplete()
+    {
+        return isComplete;
+    }
+
+    // Метод для принудительного завершения диалога
+    public void ForceComplete()
+    {
+        if (typingCoroutine != null)
+        {
+            StopCoroutine(typingCoroutine);
+            typingCoroutine = null;
+        }
+
+        if (textTMP != null && lines != null && lines.Length > 0 && index < lines.Length)
+        {
+            textTMP.text = lines[index];
+        }
+
+        CompleteDialogue();
     }
 }

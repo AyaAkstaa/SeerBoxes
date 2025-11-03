@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
 using TMPro;
-using System.Security.Cryptography;
 using System.Collections;
 
 public class LevelManager : MonoBehaviour
@@ -158,11 +157,11 @@ public class LevelManager : MonoBehaviour
 
     IEnumerator GenerateLevelWithDelay(int lvl)
     {
-        // Даем время для отображения панели уровня
-        yield return new WaitForSeconds(2f);
+        // Даем время для отображения панели уровня (можно уменьшить, так как панель сама скроется)
+        yield return new WaitForSeconds(1f); // Уменьшено с 2f до 1f
 
         Debug.Log($"Generating level {lvl}");
-        
+
         switch (lvl)
         {
             case 1: GenerateLevel1(); break;
@@ -324,20 +323,84 @@ public class LevelManager : MonoBehaviour
         return list;
     }
 
+    // В методе OnChestClicked добавляем звуки
+    // В методе OnChestClicked обновляем логику
     void OnChestClicked(int idx)
     {
         if (isLevelLoading) return;
 
         Debug.Log("Clicked: " + idx);
+
+        // Получаем компонент Chest
+        Chest clickedChest = null;
+        if (idx < spawned.Count && spawned[idx] != null)
+        {
+            clickedChest = spawned[idx].GetComponent<Chest>();
+        }
+
         if (idx == correctIndex)
         {
+            // Воспроизводим звук правильного сундука
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayCorrectChest();
+            }
+
+            // Помечаем правильный сундук
+            if (clickedChest != null)
+            {
+                clickedChest.MarkAsCorrect();
+            }
+
             hintText.text = "Correct!";
+
+            // Делаем все сундуки неинтерактивными
+            SetAllChestsInteractable(false);
+
             // GO NEXT after small delay
             StartCoroutine(NextLevelWithDelay());
         }
         else
         {
+            // Воспроизводим звук неправильного сундука
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayWrongChest();
+            }
+
+            // Помечаем неправильный сундук
+            if (clickedChest != null)
+            {
+                clickedChest.MarkAsWrong();
+            }
+
+            // Делаем все сундуки неинтерактивными
+            SetAllChestsInteractable(false);
+
             Lose();
+        }
+    }
+
+
+    // Новый метод для управления интерактивностью всех сундуков
+    private void SetAllChestsInteractable(bool interactable)
+    {
+        foreach (var chestObj in spawned)
+        {
+            if (chestObj != null)
+            {
+                var chest = chestObj.GetComponent<Chest>();
+                if (chest != null)
+                {
+                    // Если нужно сделать интерактивными - сбрасываем анимацию
+                    if (interactable)
+                    {
+                        chest.ResetAnimation();
+                    }
+                    // Если нужно сделать неинтерактивными - просто блокируем взаимодействие
+                    // (размер уже изменен через MarkAsCorrect/MarkAsWrong)
+                }
+            }
         }
     }
 
@@ -396,7 +459,6 @@ public class LevelManager : MonoBehaviour
             uiManager.ShowWinPanel();
         }
     }
-
 
     void GenerateWin()
     {
@@ -610,7 +672,6 @@ public class LevelManager : MonoBehaviour
 
         correctIndex = correctIdx;
     }
-
 
     // 4) Symmetry puzzle: 6 chests with pictures; hint is one of 3 random symmetry puzzles; chests arranged randomly
     void GenerateLevel4()
@@ -895,87 +956,12 @@ public class LevelManager : MonoBehaviour
                 }
             }
 
-            // ВАРИАНТ B (альтернатива): через screenPoint (полезно для ScreenSpace канвы)
-            /*
-            if (noChestZoneSize != null && canvas != null)
-            {
-                Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(
-                    canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera,
-                    chestParent.TransformPoint(cand)
-                );
-
-                if (RectTransformUtility.RectangleContainsScreenPoint(noChestZoneSize, screenPoint,
-                        canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera))
-                {
-                    ok = false;
-                }
-            }
-            */
             if (ok) return cand;
         }
 
         Debug.Log("FindRandomFreeSpot: failed to find free spot");
         return new Vector2(6.34f, -3.98f);
     }
-
-
-    // 7) IQ test: like level 4, 6 image chests with one correct according to hint
-    // void GenerateLevel7() {
-    //     hintText.text = "Select the missing element (IQ style).";
-    //     hintImage.sprite = iqHintSprites[UnityEngine.Random.Range(0, iqHintSprites.Length)];
-    //     hintImage.color = Color.white;
-    //     var list = SpawnGrid(2,3,chestImagePrefab);
-    //     int correctLocal = UnityEngine.Random.Range(0,6);
-    //     for (int i=0;i<list.Count;i++) {
-    //         var ic = list[i].GetComponent<ImageChest>();
-    //         if (i == correctLocal) ic.SetContent( GetIQCorrectSprite() );
-    //         else ic.SetContent( GetIQDistractorSprite() );
-    //     }
-    //     correctIndex = correctLocal;
-    // }
-
-    // Sprite GetIQCorrectSprite() { return iqHintSprites[0]; }
-    // Sprite GetIQDistractorSprite() { return iqHintSprites[ UnityEngine.Random.Range(0, iqHintSprites.Length) ]; }
-
-    // 8) Odd-one-out (5 chests). Use visual differences (size, border, shape). Answer is the one that is NOT highlighted.
-    // void GenerateLevel7()
-    // {
-    //     hintImage.sprite = hintSprite;
-    //     hintImage.color = Color.white;
-    //     hintText.text = "Which one is special? (the trick: the correct one is the one not standing out)";
-    //     // spawn 1x5
-    //     var list = SpawnGrid(1, 5, chestOddPrefab);
-    //     // create one "normal" and 4 "variations" or vice versa. Per user's instruction: correct is that which is nothing special (i.e., non-distinct)
-    //     // Approach: make 4 chests have an obvious difference; 1 chest is plain -> that plain one is correct
-    //     int plainIndex = UnityEngine.Random.Range(0, 5);
-    //     for (int i = 0; i < list.Count; i++)
-    //     {
-    //         var odd = list[i].GetComponent<OddChest>();
-    //         if (i == plainIndex) odd.SetNormalAppearance();
-    //         else odd.SetVariantAppearance(i); // different patterns
-    //     }
-    //     correctIndex = plainIndex;
-    // }
-
-    // 9) Color-XOR / color-mix: 6 colored chests, hint shows two colors; answer is chest whose color equals computed mix
-    // void GenerateLevel9() {
-    //     hintText.text = "Which color is the product of these two?";
-    //     hintImage.sprite = twoColorsSprite; hintImage.color = Color.white;
-    //     var list = SpawnGrid(2,3,chestColorPrefab);
-    //     // define two base colors (random)
-    //     Color A = Color.red;
-    //     Color B = Color.blue;
-    //     // compute target color as XOR or average — choose XOR-like but for visual simplicity do average or complementary
-    //     Color target = new Color( (A.r + B.r)/2f, (A.g + B.g)/2f, (A.b + B.b)/2f );
-    //     // ensure exactly one chest approximates target; fill others with random colors
-    //     int match = UnityEngine.Random.Range(0, list.Count);
-    //     for (int i=0;i<list.Count;i++) {
-    //         var cc = list[i].GetComponent<ColorChest>();
-    //         if (i == match) cc.SetColor(target);
-    //         else cc.SetColor(UnityEngine.Random.ColorHSV(0f,1f,0.35f,1f,0.35f,1f));
-    //     }
-    //     correctIndex = match;
-    // }
 
     void GenerateLevel7()
     {
@@ -1102,7 +1088,6 @@ public class LevelManager : MonoBehaviour
                Mathf.Abs(a.g - b.g) < tolerance &&
                Mathf.Abs(a.b - b.b) < tolerance;
     }
-
 
     // Создает знак плюс между цветами для наглядности
     void CreatePlusSign()

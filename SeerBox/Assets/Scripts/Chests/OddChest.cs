@@ -11,4 +11,3 @@ public class OddChest : Chest {
         // maybe add border or icon to distinguish
     }
 }
-

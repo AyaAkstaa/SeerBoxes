@@ -41,10 +41,16 @@ public class UIManager : MonoBehaviour
     public string[] level7Lines = { "Уровень 7", "Что за пятна на листочке?" };
     public string[] level8Lines = { "Уровень 8", "Ты думал все так легко?" };
 
+    [Header("Level Panel Settings")]
+    public float levelPanelHideDelay = 2f;
+    public float minDisplayTime = 3f;
+
     private Dialogue startDialogue;
     private Dialogue levelDialogue;
     private Dialogue winDialogue;
     private LevelManager levelManager;
+    private Coroutine hideLevelPanelCoroutine;
+    private float levelPanelShowTime;
 
     void Start()
     {
@@ -54,6 +60,12 @@ public class UIManager : MonoBehaviour
         // Настраиваем кнопку рестарта
         if (restartButton != null)
             restartButton.onClick.AddListener(OnWinRestartClicked);
+            
+        // Добавляем обработчик звука на кнопку рестарта
+        if (restartButton != null && restartButton.GetComponent<ButtonSoundHandler>() == null)
+        {
+            restartButton.gameObject.AddComponent<ButtonSoundHandler>();
+        }
             
         StartCoroutine(InitializeGame());
     }
@@ -66,7 +78,6 @@ public class UIManager : MonoBehaviour
             winDialogue = winPanel.GetComponent<Dialogue>();
             if (winDialogue != null)
             {
-                // Создаем массив с одним элементом - winMessage
                 winDialogue.lines = new string[] { winMessage };
             }
         }
@@ -89,6 +100,8 @@ public class UIManager : MonoBehaviour
         {
             levelDialogue = levelPanel.GetComponent<Dialogue>();
             levelPanel.SetActive(false);
+            
+            levelDialogue.OnDialogueComplete += OnLevelDialogueComplete;
         }
     }
 
@@ -111,6 +124,7 @@ public class UIManager : MonoBehaviour
 
     void OnWinRestartClicked()
     {
+        // Звук теперь воспроизводится через ButtonSoundHandler
         winPanel.SetActive(false);
         startPanel.SetActive(true);
         startDialogue.SetLines(winRestartLines);
@@ -120,27 +134,63 @@ public class UIManager : MonoBehaviour
     {
         if (levelPanel == null || levelDialogue == null) return;
 
+        if (hideLevelPanelCoroutine != null)
+        {
+            StopCoroutine(hideLevelPanelCoroutine);
+            hideLevelPanelCoroutine = null;
+        }
+
         string[] lines = GetLevelDialogue(levelNumber);
         levelPanel.SetActive(true);
         levelDialogue.SetLines(lines);
+        
+        levelPanelShowTime = Time.time;
+    }
+
+    private IEnumerator HideLevelPanelWithDelay()
+    {
+        float timeSinceShow = Time.time - levelPanelShowTime;
+        float remainingMinTime = Mathf.Max(0, minDisplayTime - timeSinceShow);
+        
+        yield return new WaitForSeconds(remainingMinTime + levelPanelHideDelay);
+        
+        if (levelPanel != null)
+        {
+            levelPanel.SetActive(false);
+        }
+        
+        hideLevelPanelCoroutine = null;
+    }
+
+    private void OnLevelDialogueComplete()
+    {
+        hideLevelPanelCoroutine = StartCoroutine(HideLevelPanelWithDelay());
     }
 
     public void ShowWinPanel()
     {
+        if (hideLevelPanelCoroutine != null)
+        {
+            StopCoroutine(hideLevelPanelCoroutine);
+            hideLevelPanelCoroutine = null;
+        }
+        
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayWinSound();
+        }
+        
         startPanel.SetActive(false);
         levelPanel.SetActive(false);
         winPanel.SetActive(true);
         
-        // Запускаем анимацию текста победы
         if (winDialogue != null)
         {
-            // Обновляем текст на случай, если он изменился в инспекторе
             winDialogue.lines = new string[] { winMessage };
             winDialogue.StartDialogue();
         }
         else
         {
-            // Если нет Dialogue компонента, просто устанавливаем текст
             if (winText != null)
                 winText.text = winMessage;
         }
@@ -148,6 +198,17 @@ public class UIManager : MonoBehaviour
 
     public void ShowLoseScreen()
     {
+        if (hideLevelPanelCoroutine != null)
+        {
+            StopCoroutine(hideLevelPanelCoroutine);
+            hideLevelPanelCoroutine = null;
+        }
+        
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayLoseSound();
+        }
+        
         winPanel.SetActive(false);
         levelPanel.SetActive(false);
         startPanel.SetActive(true);
@@ -174,5 +235,8 @@ public class UIManager : MonoBehaviour
     {
         if (startDialogue != null)
             startDialogue.OnDialogueComplete -= OnStartDialogueComplete;
+            
+        if (levelDialogue != null)
+            levelDialogue.OnDialogueComplete -= OnLevelDialogueComplete;
     }
 }
