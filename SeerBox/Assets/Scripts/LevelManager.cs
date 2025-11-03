@@ -90,24 +90,24 @@ public class LevelManager : MonoBehaviour
         }
 
         // Удаляем все созданные объекты
-        foreach (var g in spawned) 
+        foreach (var g in spawned)
         {
-            if (g != null) 
+            if (g != null)
                 Destroy(g);
         }
         spawned.Clear();
-        
+
         correctIndex = -1;
-        
+
         // Сбрасываем UI
         if (hintImage != null)
         {
             RectTransform rect = hintImage.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(238, 412);
-            hintImage.sprite = null; 
+            hintImage.sprite = null;
             hintImage.color = Color.clear;
         }
-        
+
         if (hintText != null)
         {
             RectTransform TextRect = hintText.GetComponent<RectTransform>();
@@ -116,15 +116,17 @@ public class LevelManager : MonoBehaviour
             hintText.font = standartFont;
             hintText.UpdateFontAsset();
         }
-        
+
         // Удаляем вспомогательные объекты
         var old = hintImage.transform.Find("HintX");
         if (old) Destroy(old.gameObject);
-        
+
+        // Удаляем все цветные изображения (исправлено)
         var existsColors = GameObject.FindGameObjectsWithTag("ColorImage");
         foreach (GameObject colorImage in existsColors)
         {
-            Destroy(colorImage);
+            if (colorImage != null)
+                Destroy(colorImage);
         }
 
         isLevelLoading = false;
@@ -975,93 +977,195 @@ public class LevelManager : MonoBehaviour
     //     correctIndex = match;
     // }
 
-
     void GenerateLevel7()
     {
-        hintText.text = "Which chest has the color resulting from mixing the two hint colors?";
+        hintText.text = "Find the chest with mixed color of these two";
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
 
         // Спавним 6 сундуков
         var list = SpawnGrid(2, 3, chestColorPrefab);
 
-        // Определяем два случайных цвета для подсказки
-        Color colorA = UnityEngine.Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
-        Color colorB = UnityEngine.Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.5f, 1f);
+        // Генерируем два разных цвета
+        Color colorA = UnityEngine.Random.ColorHSV(0f, 1f, 0.7f, 1f, 0.7f, 0.9f);
+        Color colorB;
 
-        // Цвет правильного сундука — смесь
-        Color mixed = new Color(
-            (colorA.r + colorB.r) / 2f,
-            (colorA.g + colorB.g) / 2f,
-            (colorA.b + colorB.b) / 2f
-        );
+        // Гарантируем, что второй цвет отличается от первого
+        do
+        {
+            colorB = UnityEngine.Random.ColorHSV(0f, 1f, 0.7f, 1f, 0.7f, 0.9f);
+        } while (ColorDistance(colorA, colorB) < 0.5f);
 
-        // Случайно выбираем индекс правильного сундука
-        int correct = UnityEngine.Random.Range(0, list.Count);
+        // Смешанный цвет
+        Color mixedColor = (colorA + colorB) * 0.5f;
 
-        // Создаем массив цветов для 6 сундуков
+        // Создаем список цветов
         List<Color> colors = new List<Color>();
-        colors.Add(mixed);   // правильный
+
+        // Добавляем правильный цвет
+        colors.Add(mixedColor);
+
+        // Добавляем исходные цвета
         colors.Add(colorA);
         colors.Add(colorB);
 
-        // Генерируем 3 уникальных случайных цвета для остальных сундуков
-        while (colors.Count < 6)
+        // Добавляем 3 случайных цвета, которые сильно отличаются от всех существующих
+        for (int i = 0; i < 3; i++)
         {
-            Color rnd = UnityEngine.Random.ColorHSV(0f, 1f, 0.35f, 1f, 0.35f, 1f);
-            bool exists = false;
-            foreach (var c in colors)
+            Color newColor;
+            int attempts = 0;
+            bool isDistinct;
+
+            do
             {
-                if (ApproximatelyEqualColors(c, rnd)) { exists = true; break; }
-            }
-            if (!exists) colors.Add(rnd);
+                newColor = UnityEngine.Random.ColorHSV(0f, 1f, 0.6f, 1f, 0.6f, 0.9f);
+                isDistinct = true;
+
+                // Проверяем, что новый цвет достаточно отличается от всех существующих
+                foreach (Color existingColor in colors)
+                {
+                    if (ColorDistance(newColor, existingColor) < 0.4f) // Увеличили минимальное расстояние
+                    {
+                        isDistinct = false;
+                        break;
+                    }
+                }
+
+                attempts++;
+                if (attempts > 50) // Защита от бесконечного цикла
+                {
+                    Debug.LogWarning("Could not generate sufficiently distinct color after 50 attempts");
+                    break;
+                }
+            } while (!isDistinct);
+
+            colors.Add(newColor);
         }
 
-        // Перемешиваем порядок цветов случайным образом
+        // Перемешиваем
         for (int i = 0; i < colors.Count; i++)
         {
-            int j = UnityEngine.Random.Range(i, colors.Count);
-            var temp = colors[i];
-            colors[i] = colors[j];
-            colors[j] = temp;
+            int randomIndex = UnityEngine.Random.Range(i, colors.Count);
+            Color temp = colors[i];
+            colors[i] = colors[randomIndex];
+            colors[randomIndex] = temp;
         }
 
-        // Назначаем цвета сундукам
+        // Назначаем цвета сундукам и находим правильный индекс
+        correctIndex = -1;
         for (int i = 0; i < list.Count; i++)
         {
-            var cc = list[i].GetComponent<ColorChest>();
-            cc.SetColor(colors[i]);
-            if (ApproximatelyEqualColors(colors[i], mixed)) correctIndex = i;
+            var colorChest = list[i].GetComponent<ColorChest>();
+            if (colorChest != null)
+            {
+                colorChest.SetColor(colors[i]);
+
+                // Проверяем, является ли этот цвет смешанным
+                if (IsColorSimilar(colors[i], mixedColor, 0.05f))
+                {
+                    correctIndex = i;
+                }
+            }
         }
 
-        // Создаем два цветных изображения в подсказке (как во 2-м уровне)
-        CreateHintColorImage(colorA, "HintColor1", new Vector2(-25, -50));
-        CreateHintColorImage(colorB, "HintColor2", new Vector2(25, 50));
+        // Если по какой-то причине не нашли правильный цвет, устанавливаем первый
+        if (correctIndex == -1)
+        {
+            correctIndex = 0;
+            Debug.LogWarning("Could not find mixed color, using first chest as correct");
+        }
+
+        // Показываем два цвета-подсказки
+        CreateHintColorImage(colorA, "HintColor1", new Vector2(-50, 0));
+        CreateHintColorImage(colorB, "HintColor2", new Vector2(50, 0));
+
+        // Добавляем плюс между ними
+        CreatePlusSign();
+
+        // Логируем расстояния между цветами для отладки
+        Debug.Log($"Level 7 - ColorA: {colorA}, ColorB: {colorB}, Mixed: {mixedColor}");
+        Debug.Log($"Correct index: {correctIndex}");
+        Debug.Log($"Color distances:");
+        for (int i = 0; i < colors.Count; i++)
+        {
+            for (int j = i + 1; j < colors.Count; j++)
+            {
+                Debug.Log($"  Color {i} to {j}: {ColorDistance(colors[i], colors[j]):F3}");
+            }
+        }
     }
 
-    // Проверка приближенного равенства цветов
-    bool ApproximatelyEqualColors(Color c1, Color c2, float tolerance = 0.01f)
+    // Проверяет, похожи ли два цвета
+    bool IsColorSimilar(Color a, Color b, float tolerance)
     {
-        return Mathf.Abs(c1.r - c2.r) < tolerance &&
-               Mathf.Abs(c1.g - c2.g) < tolerance &&
-               Mathf.Abs(c1.b - c2.b) < tolerance;
+        return Mathf.Abs(a.r - b.r) < tolerance &&
+               Mathf.Abs(a.g - b.g) < tolerance &&
+               Mathf.Abs(a.b - b.b) < tolerance;
     }
 
+
+    // Создает знак плюс между цветами для наглядности
+    void CreatePlusSign()
+    {
+        GameObject plus = new GameObject("PlusSign", typeof(RectTransform), typeof(TextMeshProUGUI));
+        plus.transform.SetParent(hintImage.transform, false);
+
+        var text = plus.GetComponent<TextMeshProUGUI>();
+        text.text = "+";
+        text.fontSize = 24;
+        text.color = Color.white;
+        text.alignment = TextAlignmentOptions.Center;
+        text.raycastTarget = false;
+
+        RectTransform rt = plus.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = new Vector2(30, 30);
+    }
+
+    // Вычисляет "расстояние" между двумя цветами в RGB пространстве
+    float ColorDistance(Color c1, Color c2)
+    {
+        return Mathf.Sqrt(
+            Mathf.Pow(c1.r - c2.r, 2) +
+            Mathf.Pow(c1.g - c2.g, 2) +
+            Mathf.Pow(c1.b - c2.b, 2)
+        );
+    }
 
     // Создание маленького Image на подсказке
     void CreateHintColorImage(Color color, string name, Vector2 anchoredPos)
     {
-        GameObject go = new GameObject(name, typeof(RectTransform), typeof(SpriteRenderer));
+        GameObject go = new GameObject(name, typeof(RectTransform), typeof(Image));
         go.tag = "ColorImage";
         go.transform.SetParent(hintImage.transform, false);
-        var renderer = go.GetComponent<SpriteRenderer>();
-        renderer.color = color;
-        renderer.sprite = name == "HintColor1" ? colorImage1 : colorImage2;
-        renderer.sortingOrder = 1;
-        renderer.sortingOrder = 15;
-        go.transform.localPosition = new Vector3(anchoredPos.x, anchoredPos.y, -0.1f);
-        go.transform.localScale = Vector3.one * 1f;
+
+        var image = go.GetComponent<Image>();
+        image.color = color;
+
+        // Используем спрайты для цветных изображений
+        image.sprite = name == "HintColor1" ? colorImage1 : colorImage2;
+        image.preserveAspect = true;
+
+        RectTransform rt = go.GetComponent<RectTransform>();
+
+        // Настраиваем привязку к центру родителя
+        rt.anchorMin = new Vector2(0.5f, 0.5f);
+        rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+
+        // Устанавливаем позицию
+        rt.anchoredPosition = anchoredPos;
+
+        // Устанавливаем размер (настроить под ваш UI)
+        rt.sizeDelta = new Vector2(60, 60);
+
+        // Убеждаемся, что изображение видимо
+        image.raycastTarget = false;
     }
+
     // 10) No hint: two chests only with jokey text
     void GenerateLevel8()
     {
