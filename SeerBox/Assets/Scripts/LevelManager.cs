@@ -51,6 +51,8 @@ public class LevelManager : MonoBehaviour
 
     private UIManager uiManager;
 
+    private bool isLevelInteractive = true; // Добавляем флаг интерактивности уровня
+
     class MathTemplate
     {
         public string expr;
@@ -66,10 +68,24 @@ public class LevelManager : MonoBehaviour
     List<MathTemplate> GetMathTemplates()
     {
         return new List<MathTemplate> {
+            // 2 + 2 * 2 - x ≤ 6 → 6 - x ≤ 6 → x ≥ 0
+            // Правильные числа от 1 до 6
             new MathTemplate("2 + 2 * 2 - ...", x => x <= 6, 1, 6, 7, 50),
-            new MathTemplate("8 - 3*(6-1) + 1#... ", x => x >= 3, 3, 50, -20, 1),
-            new MathTemplate("65 * 4 - 20#...", x => x <= 60, 0, 60, 61, 200),
-            new MathTemplate("496 : 16 + ...", x => x > 31, 32, 200, -20, 31),
+            
+            // 8 - 3*(6-1) + 1 + x ≥ 3 → -6 + x ≥ 3 → x ≥ 9
+            // Но требуются правильные числа от 3 до 12
+            new MathTemplate("8 - 3*(6-1) + 1#... ", x => x >= 3 && x <= 12, 3, 12, -20, 2),
+            
+            // 65 * 4 - 20 + x ≤ 60 → 240 - 20 + x ≤ 60 → 220 + x ≤ 60 → x ≤ -160
+            // Исправляем: правильные числа от 51 до 60
+            new MathTemplate("65 * 4 - 20#...", x => x >= 51 && x <= 60, 51, 60, 0, 50),
+            
+            // 496 : 16 + x > 31 → 31 + x > 31 → x > 0
+            // Но требуются числа 31 и выше
+            new MathTemplate("496 : 16 + ...", x => x >= 31, 31, 200, -20, 30),
+            
+            // (11 - 8 + 2) * 0 - x ≤ 0 → 0 - x ≤ 0 → -x ≤ 0 → x ≥ 0
+            // Но требуются от 0 и отрицательные числа
             new MathTemplate("(11 - 8 + 2) * 0 - ...", x => x <= 0, -20, 0, 1, 80)
         };
     }
@@ -81,7 +97,6 @@ public class LevelManager : MonoBehaviour
 
     void Clear()
     {
-        // Останавливаем корутину загрузки уровня
         if (levelLoadCoroutine != null)
         {
             StopCoroutine(levelLoadCoroutine);
@@ -97,6 +112,8 @@ public class LevelManager : MonoBehaviour
         spawned.Clear();
 
         correctIndex = -1;
+        isLevelInteractive = true; // Сбрасываем флаг интерактивности
+    
 
         // Сбрасываем UI
         if (hintImage != null)
@@ -120,7 +137,7 @@ public class LevelManager : MonoBehaviour
         var old = hintImage.transform.Find("HintX");
         if (old) Destroy(old.gameObject);
 
-        // Удаляем все цветные изображения (исправлено)
+        // Удаляем все цветные изображения
         var existsColors = GameObject.FindGameObjectsWithTag("ColorImage");
         foreach (GameObject colorImage in existsColors)
         {
@@ -140,25 +157,42 @@ public class LevelManager : MonoBehaviour
         }
 
         isLevelLoading = true;
+        
+        // Для всех уровней, включая первый, используем анимацию
+        StartCoroutine(StartLevelWithAnimation(lvl));
+    }
+
+    IEnumerator StartLevelWithAnimation(int lvl)
+    {
+        // Для всех уровней используем анимацию перехода
+        yield return uiManager.TransitionToNextLevel(lvl);
+    }
+
+    // Новый метод для сброса и генерации уровня в середине анимации
+    public IEnumerator ResetAndGenerateLevel(int lvl)
+    {
         Clear();
         currentLevel = lvl;
 
-        Debug.Log($"Starting level {lvl}");
+        Debug.Log($"Resetting and generating level {lvl}");
 
-        // Показываем панель уровня для всех уровней
+        // Показываем панель уровня
         if (uiManager != null)
         {
             uiManager.ShowLevelPanel(lvl);
         }
 
-        // Запускаем генерацию уровня после задержки
-        levelLoadCoroutine = StartCoroutine(GenerateLevelWithDelay(lvl));
+        // Генерируем уровень немедленно (без задержки)
+        GenerateLevelImmediate(lvl);
+        
+        yield return null;
     }
 
-    IEnumerator GenerateLevelWithDelay(int lvl)
+    void GenerateLevelImmediate(int lvl)
     {
-        yield return new WaitForSeconds(1f);
-        Debug.Log($"Generating level {lvl}");
+        Debug.Log($"Generating level {lvl} immediately");
+
+        isLevelInteractive = true; // Убеждаемся, что уровень интерактивен
 
         switch (lvl)
         {
@@ -169,15 +203,14 @@ public class LevelManager : MonoBehaviour
             case 5: GenerateLevel5(); break;
             case 6: GenerateLevel6(); break;
             case 7: GenerateLevel7(); break;
-            case 8: GenerateLevel8(); break;  // Последовательность
-            case 9: GenerateLevel9(); break;  // Ближайшее число
-            case 10: GenerateLevel10(); break; // Угадайка
+            case 8: GenerateLevel8(); break;
+            case 9: GenerateLevel9(); break;
+            case 10: GenerateLevel10(); break;
         }
 
         isLevelLoading = false;
         Debug.Log($"Level {lvl} generation completed");
     }
-
 
     // helper: spawn grid rows x cols with given prefab, returns list
     List<GameObject> SpawnGrid(int rows, int cols, GameObject prefab)
@@ -327,9 +360,13 @@ public class LevelManager : MonoBehaviour
     // В методе OnChestClicked добавляем звуки
     void OnChestClicked(int idx)
     {
-        if (isLevelLoading) return;
+        if (isLevelLoading || !isLevelInteractive) return; // Добавляем проверку на isLevelInteractive
 
         Debug.Log("Clicked: " + idx);
+
+        // БЛОКИРУЕМ ВСЕ СУНДУКИ СРАЗУ ПОСЛЕ ПЕРВОГО КЛИКА
+        SetAllChestsInteractable(false);
+        isLevelInteractive = false; // Добавляем флаг блокировки уровня
 
         // Получаем компонент Chest
         Chest clickedChest = null;
@@ -354,9 +391,6 @@ public class LevelManager : MonoBehaviour
 
             hintText.text = "Correct!";
 
-            // Делаем все сундуки неинтерактивными
-            SetAllChestsInteractable(false);
-
             // GO NEXT after small delay
             StartCoroutine(NextLevelWithDelay());
         }
@@ -374,14 +408,16 @@ public class LevelManager : MonoBehaviour
                 clickedChest.MarkAsWrong();
             }
 
-            // Делаем все сундуки неинтерактивными
-            SetAllChestsInteractable(false);
-
             Lose();
         }
     }
 
 
+    IEnumerator NextLevelWithDelay()
+    {
+        yield return new WaitForSeconds(1f);
+        NextLevel();
+    }
     // Новый метод для управления интерактивностью всех сундуков
     private void SetAllChestsInteractable(bool interactable)
     {
@@ -392,23 +428,16 @@ public class LevelManager : MonoBehaviour
                 var chest = chestObj.GetComponent<Chest>();
                 if (chest != null)
                 {
-                    // Если нужно сделать интерактивными - сбрасываем анимацию
+                    chest.SetInteractable(interactable);
                     if (interactable)
                     {
                         chest.ResetAnimation();
                     }
-                    // Если нужно сделать неинтерактивными - просто блокируем взаимодействие
-                    // (размер уже изменен через MarkAsCorrect/MarkAsWrong)
                 }
             }
         }
     }
 
-    IEnumerator NextLevelWithDelay()
-    {
-        yield return new WaitForSeconds(1f);
-        NextLevel();
-    }
 
     void Lose()
     {
@@ -437,7 +466,7 @@ public class LevelManager : MonoBehaviour
         int nextLevel = currentLevel + 1;
         Debug.Log($"Moving to level {nextLevel}");
 
-        if (nextLevel > maxLevel)  // Теперь будет правильно работать с 10 уровнями
+        if (nextLevel > maxLevel)
         {
             // все уровни пройдены -> победа
             ShowWin();
@@ -447,7 +476,6 @@ public class LevelManager : MonoBehaviour
             StartLevel(nextLevel);
         }
     }
-
 
     void ShowWin()
     {
@@ -1172,16 +1200,16 @@ public class LevelManager : MonoBehaviour
                 hint = $"Продолжи: {geoStart}, {geoStart * multiplier}, {geoStart * multiplier * multiplier}, ?";
                 break;
 
-            case 2: // Четные/нечетные
-                int oddEvenStart = UnityEngine.Random.Range(1, 10);
-                bool isEvenSequence = UnityEngine.Random.Range(0, 2) == 0;
-                correctNumber = isEvenSequence ?
-                    (oddEvenStart % 2 == 0 ? oddEvenStart + 6 : oddEvenStart + 7) :
-                    (oddEvenStart % 2 == 1 ? oddEvenStart + 6 : oddEvenStart + 7);
-                numbers.Add(correctNumber);
-                string type = isEvenSequence ? "четных" : "нечетных";
-                hint = $"Продолжи последовательность {type} чисел";
-                break;
+            // case 2: // Четные/нечетные
+            //     int oddEvenStart = UnityEngine.Random.Range(1, 10);
+            //     bool isEvenSequence = UnityEngine.Random.Range(0, 2) == 0;
+            //     correctNumber = isEvenSequence ?
+            //         (oddEvenStart % 2 == 0 ? oddEvenStart + 6 : oddEvenStart + 7) :
+            //         (oddEvenStart % 2 == 1 ? oddEvenStart + 6 : oddEvenStart + 7);
+            //     numbers.Add(correctNumber);
+            //     string type = isEvenSequence ? "четных" : "нечетных";
+            //     hint = $"Продолжи последовательность {type} чисел";
+            //     break;
         }
 
         // Добавляем неправильные варианты

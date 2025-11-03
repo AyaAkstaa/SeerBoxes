@@ -10,25 +10,19 @@ public class UIManager : MonoBehaviour
     public GameObject levelPanel;
     public GameObject winPanel;
 
-    [Header("Win Panel Elements")]
+    [Header("UI Elements")]
+    public RectTransform hintImage;
     public TextMeshProUGUI winText;
     public Button restartButton;
 
+    [Header("Animation Settings")]
+    public float slideDuration = 0.5f;
+    public float slideDistance = 500f;
+
     [Header("Dialogue Texts")]
-    public string[] startLines = {
-        "Добро пожаловать в игру!",
-        "Ищите сокровища...",
-    };
-
-    public string[] winRestartLines = {
-        "Захотел пройти игру еще раз?"
-    };
-
-    public string[] loseLines = {
-        "Ой не получилось пройти("
-    };
-
-    [Header("Win Text")]
+    public string[] startLines = { "Добро пожаловать в игру!", "Ищите сокровища..." };
+    public string[] winRestartLines = { "Захотел пройти игру еще раз?" };
+    public string[] loseLines = { "Ой не получилось пройти(" };
     public string winMessage = "Ты победил!!!";
 
     [Header("Level Dialogues")]
@@ -39,9 +33,9 @@ public class UIManager : MonoBehaviour
     public string[] level5Lines = { "Уровень 5", "Куда ведут эти стрелки?" };
     public string[] level6Lines = { "Уровень 6", "Что-то тут не так" };
     public string[] level7Lines = { "Уровень 7", "Что за пятна на листочке?" };
-    public string[] level8Lines = { "Уровень 8", "Хм, что за странный порядок чисел..." }; 
-    public string[] level9Lines = { "Уровень 9", "Найди ближайшее число" };     
-    public string[] level10Lines = { "Уровень 10", "Ты думал все так легко? Вот и гадай теперь где здесь правильный сундук..." };    // Старый 8-й уровень
+    public string[] level8Lines = { "Уровень 8", "Продолжи последовательность" };
+    public string[] level9Lines = { "Уровень 9", "Найди ближайшее число" };
+    public string[] level10Lines = { "Уровень 10", "Ты думал все так легко?" };
 
     [Header("Level Panel Settings")]
     public float levelPanelHideDelay = 2f;
@@ -53,20 +47,27 @@ public class UIManager : MonoBehaviour
     private LevelManager levelManager;
     private Coroutine hideLevelPanelCoroutine;
     private float levelPanelShowTime;
+    private Vector2 hintImageOriginalPos;
 
     void Start()
     {
+        // Сохраняем оригинальную позицию hintImage
+        if (hintImage != null)
+        {
+            hintImageOriginalPos = hintImage.anchoredPosition;
+        }
+
         winPanel.SetActive(false);
         levelManager = FindObjectOfType<LevelManager>();
         
         // Настраиваем кнопку рестарта
         if (restartButton != null)
-            restartButton.onClick.AddListener(OnWinRestartClicked);
-            
-        // Добавляем обработчик звука на кнопку рестарта
-        if (restartButton != null && restartButton.GetComponent<ButtonSoundHandler>() == null)
         {
-            restartButton.gameObject.AddComponent<ButtonSoundHandler>();
+            restartButton.onClick.AddListener(OnWinRestartClicked);
+            if (restartButton.GetComponent<ButtonSoundHandler>() == null)
+            {
+                restartButton.gameObject.AddComponent<ButtonSoundHandler>();
+            }
         }
             
         StartCoroutine(InitializeGame());
@@ -93,7 +94,7 @@ public class UIManager : MonoBehaviour
                 startDialogue.lines = startLines;
                 startDialogue.OnDialogueComplete += OnStartDialogueComplete;
                 startPanel.SetActive(true);
-                yield return StartCoroutine(StartStartDialogue());
+                startDialogue.StartDialogue();
             }
         }
 
@@ -102,32 +103,32 @@ public class UIManager : MonoBehaviour
         {
             levelDialogue = levelPanel.GetComponent<Dialogue>();
             levelPanel.SetActive(false);
-            
             levelDialogue.OnDialogueComplete += OnLevelDialogueComplete;
         }
-    }
 
-    IEnumerator StartStartDialogue()
-    {
         yield return null;
-        startDialogue.StartDialogue();
     }
 
     void OnStartDialogueComplete()
     {
-        StartGame();
-    }
-
-    void StartGame()
-    {
-        startPanel.SetActive(false);
-        levelManager.StartLevel(1);
+        StartCoroutine(TransitionFromStartToFirstLevel());
     }
 
     void OnWinRestartClicked()
     {
-        // Звук теперь воспроизводится через ButtonSoundHandler
+        StartCoroutine(RestartGameRoutine());
+    }
+
+    IEnumerator RestartGameRoutine()
+    {
         winPanel.SetActive(false);
+        
+        // Прячем изображение подсказки
+        if (hintImage != null)
+        {
+            yield return StartCoroutine(SlideAnimation(hintImageOriginalPos + new Vector2(slideDistance, 0)));
+        }
+        
         startPanel.SetActive(true);
         startDialogue.SetLines(winRestartLines);
     }
@@ -171,10 +172,21 @@ public class UIManager : MonoBehaviour
 
     public void ShowWinPanel()
     {
+        StartCoroutine(ShowWinPanelRoutine());
+    }
+
+    IEnumerator ShowWinPanelRoutine()
+    {
         if (hideLevelPanelCoroutine != null)
         {
             StopCoroutine(hideLevelPanelCoroutine);
             hideLevelPanelCoroutine = null;
+        }
+        
+        // Прячем изображение подсказки
+        if (hintImage != null)
+        {
+            yield return StartCoroutine(SlideAnimation(hintImageOriginalPos + new Vector2(slideDistance, 0)));
         }
         
         if (AudioManager.Instance != null)
@@ -191,19 +203,29 @@ public class UIManager : MonoBehaviour
             winDialogue.lines = new string[] { winMessage };
             winDialogue.StartDialogue();
         }
-        else
+        else if (winText != null)
         {
-            if (winText != null)
-                winText.text = winMessage;
+            winText.text = winMessage;
         }
     }
 
     public void ShowLoseScreen()
     {
+        StartCoroutine(ShowLoseScreenRoutine());
+    }
+
+    IEnumerator ShowLoseScreenRoutine()
+    {
         if (hideLevelPanelCoroutine != null)
         {
             StopCoroutine(hideLevelPanelCoroutine);
             hideLevelPanelCoroutine = null;
+        }
+        
+        // Прячем изображение подсказки
+        if (hintImage != null)
+        {
+            yield return StartCoroutine(SlideAnimation(hintImageOriginalPos + new Vector2(slideDistance, 0)));
         }
         
         if (AudioManager.Instance != null)
@@ -217,6 +239,53 @@ public class UIManager : MonoBehaviour
         startDialogue.SetLines(loseLines);
     }
 
+    // Основные методы анимации переходов
+    public IEnumerator TransitionToNextLevel(int nextLevel)
+    {
+        if (hintImage == null) yield break;
+
+        // 1. Сдвигаем вправо
+        yield return StartCoroutine(SlideAnimation(hintImageOriginalPos + new Vector2(slideDistance, 0)));
+        
+        // 2. LevelManager делает сброс и генерацию нового уровня
+        yield return StartCoroutine(levelManager.ResetAndGenerateLevel(nextLevel));
+        
+        // 3. Возвращаем на место с анимацией
+        yield return StartCoroutine(SlideAnimation(hintImageOriginalPos));
+    }
+
+    IEnumerator TransitionFromStartToFirstLevel()
+    {
+        // Скрываем стартовую панель
+        startPanel.SetActive(false);
+
+        // Сначала убираем hint image вправо
+        if (hintImage != null)
+        {
+            yield return StartCoroutine(SlideAnimation(hintImageOriginalPos + new Vector2(slideDistance, 0)));
+        }
+
+        // Затем запускаем первый уровень с анимацией
+        yield return TransitionToNextLevel(1);
+    }
+
+    // Универсальная корутина для анимации движения
+    private IEnumerator SlideAnimation(Vector2 targetPos)
+    {
+        Vector2 startPos = hintImage.anchoredPosition;
+        float elapsed = 0f;
+        
+        while (elapsed < slideDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / slideDuration;
+            hintImage.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);
+            yield return null;
+        }
+        
+        hintImage.anchoredPosition = targetPos;
+    }
+
     private string[] GetLevelDialogue(int levelNumber)
     {
         return levelNumber switch
@@ -228,13 +297,12 @@ public class UIManager : MonoBehaviour
             5 => level5Lines,
             6 => level6Lines,
             7 => level7Lines,
-            8 => level8Lines,  // "Продолжи последовательность"
-            9 => level9Lines,  // "Найди ближайшее число"  
-            10 => level10Lines, // "Ты думал все так легко?"
+            8 => level8Lines,
+            9 => level9Lines,
+            10 => level10Lines,
             _ => new string[] { $"Уровень {levelNumber}", "Найдите сокровище" }
         };
     }
-
 
     void OnDestroy()
     {

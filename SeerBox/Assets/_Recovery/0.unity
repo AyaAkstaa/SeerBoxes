@@ -920,7 +920,7 @@ MonoBehaviour:
   hintImage: {fileID: 441246511}
   winText: {fileID: 1390039790}
   restartButton: {fileID: 910065281}
-  slideDuration: 0.5
+  slideDuration: 1
   slideDistance: 500
   startLines:
   - "\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C

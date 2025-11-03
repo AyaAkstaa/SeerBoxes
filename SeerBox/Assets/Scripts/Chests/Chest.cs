@@ -34,6 +34,15 @@ public class Chest : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, 
         Initialize();
     }
 
+    public void SetInteractable(bool state)
+    {
+        isInteractable = state;
+        if (canvasGroup != null)
+        {
+            canvasGroup.blocksRaycasts = state;
+        }
+    }
+
     void Initialize()
     {
         if (isInitialized) return;
