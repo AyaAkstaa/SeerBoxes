@@ -322,7 +322,6 @@ public class LevelManager : MonoBehaviour
         return list;
     }
 
-
     void OnChestClicked(int idx)
     {
         if (isLevelLoading) return;

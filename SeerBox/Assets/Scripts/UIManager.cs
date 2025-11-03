@@ -14,7 +14,7 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI winText;
     public Button restartButton;
 
-    [Header("Start Panel Texts")]
+    [Header("Dialogue Texts")]
     public string[] startLines = {
         "Добро пожаловать в игру!",
         "Ищите сокровища...",
@@ -28,16 +28,50 @@ public class UIManager : MonoBehaviour
         "Ой не получилось пройти("
     };
 
+    [Header("Win Text")]
+    public string winMessage = "Ты победил!!!";
+
+    [Header("Level Dialogues")]
+    public string[] level1Lines = { "Уровень 1", "Выберите правильный сундук" };
+    public string[] level2Lines = { "Уровень 2", "Следуйте карте" };
+    public string[] level3Lines = { "Уровень 3", "Решите математическую задачу" };
+    public string[] level4Lines = { "Уровень 4", "Щщщщщ....." };
+    public string[] level5Lines = { "Уровень 5", "Куда ведут эти стрелки?" };
+    public string[] level6Lines = { "Уровень 6", "Что-то тут не так" };
+    public string[] level7Lines = { "Уровень 7", "Что за пятна на листочке?" };
+    public string[] level8Lines = { "Уровень 8", "Ты думал все так легко?" };
+
     private Dialogue startDialogue;
     private Dialogue levelDialogue;
+    private Dialogue winDialogue;
     private LevelManager levelManager;
-    private bool isStartSequenceActive = true;
 
     void Start()
     {
+        winPanel.SetActive(false);
         levelManager = FindObjectOfType<LevelManager>();
         
-        // Инициализация стартовой панели
+        // Настраиваем кнопку рестарта
+        if (restartButton != null)
+            restartButton.onClick.AddListener(OnWinRestartClicked);
+            
+        StartCoroutine(InitializeGame());
+    }
+
+    IEnumerator InitializeGame()
+    {
+        // Настраиваем winDialogue
+        if (winPanel != null)
+        {
+            winDialogue = winPanel.GetComponent<Dialogue>();
+            if (winDialogue != null)
+            {
+                // Создаем массив с одним элементом - winMessage
+                winDialogue.lines = new string[] { winMessage };
+            }
+        }
+
+        // Запускаем стартовый диалог
         if (startPanel != null)
         {
             startDialogue = startPanel.GetComponent<Dialogue>();
@@ -46,211 +80,99 @@ public class UIManager : MonoBehaviour
                 startDialogue.lines = startLines;
                 startDialogue.OnDialogueComplete += OnStartDialogueComplete;
                 startPanel.SetActive(true);
-                
-                StartCoroutine(StartStartDialogue());
+                yield return StartCoroutine(StartStartDialogue());
             }
-            else
-            {
-                Debug.LogError("Start panel doesn't have Dialogue component!");
-                StartGame();
-            }
-        }
-        else
-        {
-            StartGame();
         }
 
-        // Инициализация панели уровня
+        // Настраиваем панель уровня
         if (levelPanel != null)
         {
             levelDialogue = levelPanel.GetComponent<Dialogue>();
-            if (levelDialogue != null)
-            {
-                levelDialogue.OnDialogueComplete += OnLevelDialogueComplete;
-            }
             levelPanel.SetActive(false);
-        }
-
-        // Инициализация панели победы
-        if (winPanel != null)
-        {
-            // Находим элементы WinPanel
-            if (winText == null)
-                winText = winPanel.GetComponentInChildren<TextMeshProUGUI>();
-            
-            if (restartButton == null)
-                restartButton = winPanel.GetComponentInChildren<Button>();
-            
-            // Настраиваем кнопку рестарта
-            if (restartButton != null)
-            {
-                restartButton.onClick.AddListener(OnWinRestartClicked);
-            }
-            
-            // Устанавливаем текст победы
-            if (winText != null)
-            {
-                winText.text = "Ты победил!!!";
-            }
-            
-            winPanel.SetActive(false);
         }
     }
 
     IEnumerator StartStartDialogue()
     {
         yield return null;
-        if (startDialogue != null)
-        {
-            startDialogue.StartDialogue();
-        }
-    }
-
-    void StartGame()
-    {
-        if (startPanel != null)
-            startPanel.SetActive(false);
-            
-        if (levelManager != null)
-            levelManager.StartLevel(1);
+        startDialogue.StartDialogue();
     }
 
     void OnStartDialogueComplete()
     {
-        isStartSequenceActive = false;
         StartGame();
     }
 
-    void OnLevelDialogueComplete()
+    void StartGame()
     {
-        if (levelPanel != null)
-            levelPanel.SetActive(false);
+        startPanel.SetActive(false);
+        levelManager.StartLevel(1);
     }
 
     void OnWinRestartClicked()
     {
-        // Возвращаемся к стартовой панели с другим текстом
-        ShowStartPanelWithWinRestart();
+        winPanel.SetActive(false);
+        startPanel.SetActive(true);
+        startDialogue.SetLines(winRestartLines);
     }
 
     public void ShowLevelPanel(int levelNumber)
     {
-        if (levelPanel != null && levelDialogue != null)
-        {
-            string[] currentLevelLines = {
-                $"Уровень {levelNumber}",
-                GetLevelHint(levelNumber)
-            };
-            
-            levelPanel.SetActive(true);
-            StartCoroutine(SetLevelDialogueLines(currentLevelLines));
-        }
-    }
+        if (levelPanel == null || levelDialogue == null) return;
 
-    IEnumerator SetLevelDialogueLines(string[] lines)
-    {
-        yield return null;
-        if (levelDialogue != null)
-        {
-            levelDialogue.SetLines(lines);
-        }
+        string[] lines = GetLevelDialogue(levelNumber);
+        levelPanel.SetActive(true);
+        levelDialogue.SetLines(lines);
     }
 
     public void ShowWinPanel()
     {
-        if (winPanel != null)
+        startPanel.SetActive(false);
+        levelPanel.SetActive(false);
+        winPanel.SetActive(true);
+        
+        // Запускаем анимацию текста победы
+        if (winDialogue != null)
         {
-            Debug.Log("Showing Win Panel");
-            
-            // Скрываем другие панели
-            if (levelPanel != null) 
-            {
-                levelPanel.SetActive(false);
-                Debug.Log("Level panel hidden");
-            }
-            if (startPanel != null) 
-            {
-                startPanel.SetActive(false);
-                Debug.Log("Start panel hidden");
-            }
-            
-            // Показываем панель победы
-            winPanel.SetActive(true);
-            Debug.Log("Win panel activated");
-            
-            // Убеждаемся, что текст установлен
-            if (winText != null)
-            {
-                winText.text = "Ты победил!!!";
-                Debug.Log("Win text set to: " + winText.text);
-            }
+            // Обновляем текст на случай, если он изменился в инспекторе
+            winDialogue.lines = new string[] { winMessage };
+            winDialogue.StartDialogue();
         }
         else
         {
-            Debug.LogError("WinPanel is not assigned in UIManager!");
+            // Если нет Dialogue компонента, просто устанавливаем текст
+            if (winText != null)
+                winText.text = winMessage;
         }
     }
 
     public void ShowLoseScreen()
     {
-        // Показываем стартовую панель с текстом проигрыша
-        ShowStartPanelWithLoseText();
+        winPanel.SetActive(false);
+        levelPanel.SetActive(false);
+        startPanel.SetActive(true);
+        startDialogue.SetLines(loseLines);
     }
 
-    void ShowStartPanelWithWinRestart()
+    private string[] GetLevelDialogue(int levelNumber)
     {
-        if (startPanel != null && startDialogue != null)
+        return levelNumber switch
         {
-            // Скрываем winPanel
-            if (winPanel != null)
-                winPanel.SetActive(false);
-                
-            // Показываем стартовую панель
-            startPanel.SetActive(true);
-            
-            // Устанавливаем текст для повторного прохождения
-            startDialogue.SetLines(winRestartLines);
-        }
-    }
-
-    void ShowStartPanelWithLoseText()
-    {
-        if (startPanel != null && startDialogue != null)
-        {
-            // Скрываем другие панели
-            if (levelPanel != null) levelPanel.SetActive(false);
-            if (winPanel != null) winPanel.SetActive(false);
-            
-            // Показываем стартовую панель
-            startPanel.SetActive(true);
-            
-            // Устанавливаем текст проигрыша
-            startDialogue.SetLines(loseLines);
-        }
-    }
-
-    private string GetLevelHint(int level)
-    {
-        switch (level)
-        {
-            case 1: return "Выберите правильный сундук";
-            case 2: return "Следуйте карте";
-            case 3: return "Решите математическую задачу";
-            case 4: return "Щщщщщ.....";
-            case 5: return "Куда ведут эти стрелки?";
-            case 6: return "Что-то тут не так";
-            case 7: return "Что за пятна на листочке?";
-            case 8: return "Ты думал все так легко? Вот и гадай теперь где здесь правильный сундук...";
-            default: return "Найдите сокровище";
-        }
+            1 => level1Lines,
+            2 => level2Lines,
+            3 => level3Lines,
+            4 => level4Lines,
+            5 => level5Lines,
+            6 => level6Lines,
+            7 => level7Lines,
+            8 => level8Lines,
+            _ => new string[] { $"Уровень {levelNumber}", "Найдите сокровище" }
+        };
     }
 
     void OnDestroy()
     {
         if (startDialogue != null)
             startDialogue.OnDialogueComplete -= OnStartDialogueComplete;
-        
-        if (levelDialogue != null)
-            levelDialogue.OnDialogueComplete -= OnLevelDialogueComplete;
     }
 }
