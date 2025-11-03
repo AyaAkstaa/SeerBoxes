@@ -7,7 +7,7 @@ using System.Collections;
 
 public class LevelManager : MonoBehaviour
 {
-    public int maxLevel = 8;
+    public int maxLevel = 10;
 
     [Header("UI")]
     public RectTransform chestParent;
@@ -67,8 +67,8 @@ public class LevelManager : MonoBehaviour
     {
         return new List<MathTemplate> {
             new MathTemplate("2 + 2 * 2 - ...", x => x <= 6, 1, 6, 7, 50),
-            new MathTemplate("8 - 3*(6-1) + 1... ", x => x >= 3, 3, 50, -20, 1),
-            new MathTemplate("65 * 4 - 20...", x => x <= 60, 0, 60, 61, 200),
+            new MathTemplate("8 - 3*(6-1) + 1#... ", x => x >= 3, 3, 50, -20, 1),
+            new MathTemplate("65 * 4 - 20#...", x => x <= 60, 0, 60, 61, 200),
             new MathTemplate("496 : 16 + ...", x => x > 31, 32, 200, -20, 31),
             new MathTemplate("(11 - 8 + 2) * 0 - ...", x => x <= 0, -20, 0, 1, 80)
         };
@@ -157,9 +157,7 @@ public class LevelManager : MonoBehaviour
 
     IEnumerator GenerateLevelWithDelay(int lvl)
     {
-        // Даем время для отображения панели уровня (можно уменьшить, так как панель сама скроется)
-        yield return new WaitForSeconds(1f); // Уменьшено с 2f до 1f
-
+        yield return new WaitForSeconds(1f);
         Debug.Log($"Generating level {lvl}");
 
         switch (lvl)
@@ -171,12 +169,15 @@ public class LevelManager : MonoBehaviour
             case 5: GenerateLevel5(); break;
             case 6: GenerateLevel6(); break;
             case 7: GenerateLevel7(); break;
-            case 8: GenerateLevel8(); break;
+            case 8: GenerateLevel8(); break;  // Последовательность
+            case 9: GenerateLevel9(); break;  // Ближайшее число
+            case 10: GenerateLevel10(); break; // Угадайка
         }
 
         isLevelLoading = false;
         Debug.Log($"Level {lvl} generation completed");
     }
+
 
     // helper: spawn grid rows x cols with given prefab, returns list
     List<GameObject> SpawnGrid(int rows, int cols, GameObject prefab)
@@ -324,7 +325,6 @@ public class LevelManager : MonoBehaviour
     }
 
     // В методе OnChestClicked добавляем звуки
-    // В методе OnChestClicked обновляем логику
     void OnChestClicked(int idx)
     {
         if (isLevelLoading) return;
@@ -437,7 +437,7 @@ public class LevelManager : MonoBehaviour
         int nextLevel = currentLevel + 1;
         Debug.Log($"Moving to level {nextLevel}");
 
-        if (nextLevel > maxLevel)
+        if (nextLevel > maxLevel)  // Теперь будет правильно работать с 10 уровнями
         {
             // все уровни пройдены -> победа
             ShowWin();
@@ -448,19 +448,8 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    void ShowWin()
-    {
-        // Очищаем уровень
-        Clear();
-        
-        // Показываем панель победы
-        if (uiManager != null)
-        {
-            uiManager.ShowWinPanel();
-        }
-    }
 
-    void GenerateWin()
+    void ShowWin()
     {
         // Очищаем уровень
         Clear();
@@ -478,7 +467,7 @@ public class LevelManager : MonoBehaviour
         if (enableDebug && !isLevelLoading)
         {
             Debug.Log($"Debug: Loading level {level}");
-            StartLevel(Mathf.Clamp(level, 1, 9));
+            StartLevel(Mathf.Clamp(level, 1, 10));
         }
     }
 
@@ -1156,8 +1145,140 @@ public class LevelManager : MonoBehaviour
     {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
+
+        var list = SpawnGrid(2, 3, chestNumberPrefab);
+
+        // Простая последовательность с разными паттернами
+        int patternType = UnityEngine.Random.Range(0, 3);
+        List<int> numbers = new List<int>();
+        string hint = "";
+        int correctNumber = 0;
+
+        switch (patternType)
+        {
+            case 0: // Арифметическая прогрессия
+                int start = UnityEngine.Random.Range(1, 10);
+                int step = UnityEngine.Random.Range(1, 4);
+                correctNumber = start + 3 * step;
+                numbers.Add(correctNumber);
+                hint = $"Продолжи: {start}, {start + step}, {start + 2 * step}, ?";
+                break;
+
+            case 1: // Геометрическая прогрессия (упрощенная)
+                int geoStart = UnityEngine.Random.Range(1, 5);
+                int multiplier = UnityEngine.Random.Range(2, 4);
+                correctNumber = geoStart * multiplier * multiplier * multiplier;
+                numbers.Add(correctNumber);
+                hint = $"Продолжи: {geoStart}, {geoStart * multiplier}, {geoStart * multiplier * multiplier}, ?";
+                break;
+
+            case 2: // Четные/нечетные
+                int oddEvenStart = UnityEngine.Random.Range(1, 10);
+                bool isEvenSequence = UnityEngine.Random.Range(0, 2) == 0;
+                correctNumber = isEvenSequence ?
+                    (oddEvenStart % 2 == 0 ? oddEvenStart + 6 : oddEvenStart + 7) :
+                    (oddEvenStart % 2 == 1 ? oddEvenStart + 6 : oddEvenStart + 7);
+                numbers.Add(correctNumber);
+                string type = isEvenSequence ? "четных" : "нечетных";
+                hint = $"Продолжи последовательность {type} чисел";
+                break;
+        }
+
+        // Добавляем неправильные варианты
+        for (int i = 1; i < list.Count; i++)
+        {
+            int wrongNumber;
+            do
+            {
+                wrongNumber = correctNumber + UnityEngine.Random.Range(-10, 11);
+                if (wrongNumber == correctNumber) wrongNumber += 5;
+            } while (numbers.Contains(wrongNumber) || wrongNumber <= 0);
+
+            numbers.Add(wrongNumber);
+        }
+
+        // Перемешиваем
+        for (int i = 0; i < numbers.Count; i++)
+        {
+            int randomIndex = UnityEngine.Random.Range(i, numbers.Count);
+            int temp = numbers[i];
+            numbers[i] = numbers[randomIndex];
+            numbers[randomIndex] = temp;
+        }
+
+        correctIndex = numbers.IndexOf(correctNumber);
+        hintText.text = hint;
+
+        // Назначаем числа
+        for (int i = 0; i < list.Count; i++)
+        {
+            var nc = list[i].GetComponent<NumberChest>();
+            if (nc != null) nc.SetNumber(numbers[i]);
+        }
+    }
+
+    void GenerateLevel9()
+    {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
+
+        int target = UnityEngine.Random.Range(20, 80);
+        var list = SpawnGrid(2, 3, chestNumberPrefab);
+
+        // Создаем числа, одно из которых ближайшее к target
+        List<int> numbers = new List<int>();
+
+        // Правильное число (ближайшее к target)
+        int closestNumber = target + UnityEngine.Random.Range(-5, 6);
+        // Гарантируем, что не выходим за разумные пределы
+        closestNumber = Mathf.Clamp(closestNumber, 1, 100);
+        numbers.Add(closestNumber);
+
+        // Неправильные числа (дальше от target)
+        for (int i = 1; i < list.Count; i++)
+        {
+            int wrongNumber;
+            do
+            {
+                int offset = UnityEngine.Random.Range(8, 15);
+                wrongNumber = target + (UnityEngine.Random.Range(0, 2) == 0 ? offset : -offset);
+                wrongNumber = Mathf.Clamp(wrongNumber, 1, 100);
+            } while (numbers.Contains(wrongNumber) || Mathf.Abs(wrongNumber - target) <= Mathf.Abs(closestNumber - target));
+
+            numbers.Add(wrongNumber);
+        }
+
+        // Перемешиваем
+        for (int i = 0; i < numbers.Count; i++)
+        {
+            int randomIndex = UnityEngine.Random.Range(i, numbers.Count);
+            int temp = numbers[i];
+            numbers[i] = numbers[randomIndex];
+            numbers[randomIndex] = temp;
+        }
+
+        correctIndex = numbers.IndexOf(closestNumber);
+
+        hintText.text = $"Найди число ближайшее к {target}";
+
+        // Назначаем числа
+        for (int i = 0; i < list.Count; i++)
+        {
+            var nc = list[i].GetComponent<NumberChest>();
+            if (nc != null) nc.SetNumber(numbers[i]);
+        }
+
+        // Для отладки
+        Debug.Log($"Level 9 - Target: {target}, Closest: {closestNumber}, Numbers: {string.Join(", ", numbers)}");
+    }
+
+    void GenerateLevel10()
+    {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
         hintText.text = "\"Thought it'd be easy? Now real clairvoyance time.\"";
         var list = SpawnGrid(1, 2, chestGenericPrefab);
         correctIndex = UnityEngine.Random.Range(0, 2);
     }
+
 }

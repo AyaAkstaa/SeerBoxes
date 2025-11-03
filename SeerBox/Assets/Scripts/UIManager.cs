@@ -39,7 +39,9 @@ public class UIManager : MonoBehaviour
     public string[] level5Lines = { "Уровень 5", "Куда ведут эти стрелки?" };
     public string[] level6Lines = { "Уровень 6", "Что-то тут не так" };
     public string[] level7Lines = { "Уровень 7", "Что за пятна на листочке?" };
-    public string[] level8Lines = { "Уровень 8", "Ты думал все так легко?" };
+    public string[] level8Lines = { "Уровень 8", "Хм, что за странный порядок чисел..." }; 
+    public string[] level9Lines = { "Уровень 9", "Найди ближайшее число" };     
+    public string[] level10Lines = { "Уровень 10", "Ты думал все так легко? Вот и гадай теперь где здесь правильный сундук..." };    // Старый 8-й уровень
 
     [Header("Level Panel Settings")]
     public float levelPanelHideDelay = 2f;
@@ -226,10 +228,13 @@ public class UIManager : MonoBehaviour
             5 => level5Lines,
             6 => level6Lines,
             7 => level7Lines,
-            8 => level8Lines,
+            8 => level8Lines,  // "Продолжи последовательность"
+            9 => level9Lines,  // "Найди ближайшее число"  
+            10 => level10Lines, // "Ты думал все так легко?"
             _ => new string[] { $"Уровень {levelNumber}", "Найдите сокровище" }
         };
     }
+
 
     void OnDestroy()
     {
