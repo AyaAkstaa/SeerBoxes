@@ -10,11 +10,17 @@ public class Dialogue : MonoBehaviour
     public float textSpeed = 0.05f;
     public float timeBetweenLines = 0.5f;
 
+    [Header("Typewriter Sound Settings")]
+    public bool enableTypewriterSound = true;
+    [Range(0, 1)] public float soundChance = 0.7f; // Вероятность воспроизведения звука для каждого символа
+    public float minSoundDelay = 0.03f; // Минимальная задержка между звуками
+
     private int index;
     private bool isTyping = false;
     private Coroutine typingCoroutine;
     private bool skipRequested = false;
     private bool isComplete = false;
+    private float lastSoundTime = 0f;
 
     // Событие завершения диалога
     public System.Action OnDialogueComplete;
@@ -92,6 +98,7 @@ public class Dialogue : MonoBehaviour
         isTyping = false;
         skipRequested = false;
         isComplete = false;
+        lastSoundTime = 0f;
         
         if (typingCoroutine != null)
             StopCoroutine(typingCoroutine);
@@ -121,6 +128,13 @@ public class Dialogue : MonoBehaviour
             }
             
             textTMP.text += currentLine[i];
+
+            // Воспроизводим звук печатной машинки с вероятностью и задержкой
+            if (enableTypewriterSound && ShouldPlaySound(currentLine[i]))
+            {
+                PlayTypewriterSound();
+            }
+            
             yield return new WaitForSeconds(textSpeed);
         }
         
@@ -168,6 +182,7 @@ public class Dialogue : MonoBehaviour
         isTyping = false;
         skipRequested = false;
         isComplete = false;
+        lastSoundTime = 0f;
         
         if (textTMP != null)
         {
@@ -206,5 +221,33 @@ public class Dialogue : MonoBehaviour
         }
 
         CompleteDialogue();
+    }
+
+    // Определяем, нужно ли воспроизводить звук для данного символа
+    private bool ShouldPlaySound(char character)
+    {
+        // Не воспроизводим звук для пробелов и некоторых знаков препинания
+        if (char.IsWhiteSpace(character) || character == ' ' || character == '\n')
+            return false;
+
+        // Проверяем вероятность
+        if (Random.Range(0f, 1f) > soundChance)
+            return false;
+
+        // Проверяем задержку между звуками
+        if (Time.time - lastSoundTime < minSoundDelay)
+            return false;
+
+        return true;
+    }
+
+    // Воспроизведение звука печатной машинки
+    private void PlayTypewriterSound()
+    {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayTypewriterSound();
+            lastSoundTime = Time.time;
+        }
     }
 }

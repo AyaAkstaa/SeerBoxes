@@ -4,8 +4,9 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
-    [Header("Audio Source")]
+    [Header("Audio Sources")]
     public AudioSource audioSource;
+    public AudioSource typewriterAudioSource; // Новый AudioSource для звука печатной машинки
 
     [Header("Sound Effects")]
     public AudioClip chestHoverSound;
@@ -14,6 +15,7 @@ public class AudioManager : MonoBehaviour
     public AudioClip buttonClickSound;
     public AudioClip winSound;
     public AudioClip loseSound;
+    public AudioClip typewriterSound; // Звук печатной машинки
 
     [Header("Volume Settings")]
     [Range(0, 1)] public float chestHoverVolume = 0.3f;
@@ -22,6 +24,12 @@ public class AudioManager : MonoBehaviour
     [Range(0, 1)] public float buttonClickVolume = 0.5f;
     [Range(0, 1)] public float winSoundVolume = 1f;
     [Range(0, 1)] public float loseSoundVolume = 1f;
+    [Range(0, 1)] public float typewriterVolume = 0.7f;
+
+    [Header("Typewriter Settings")]
+    [Range(0.5f, 2f)] public float minPitch = 0.8f;
+    [Range(0.5f, 2f)] public float maxPitch = 1.2f;
+    public bool typewriterEnabled = true;
 
     private void Awake()
     {
@@ -37,9 +45,16 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        // Ensure audio source exists
+        // Ensure audio sources exist
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
+            
+        if (typewriterAudioSource == null)
+        {
+            typewriterAudioSource = gameObject.AddComponent<AudioSource>();
+            typewriterAudioSource.playOnAwake = false;
+            typewriterAudioSource.loop = false;
+        }
     }
 
     public void PlayChestHover()
@@ -90,6 +105,23 @@ public class AudioManager : MonoBehaviour
         }
     }
 
+    // Новый метод для звука печатной машинки
+    public void PlayTypewriterSound()
+    {
+        if (!typewriterEnabled || typewriterSound == null || typewriterAudioSource == null)
+            return;
+
+        // Случайным образом меняем тон
+        typewriterAudioSource.pitch = Random.Range(minPitch, maxPitch);
+        typewriterAudioSource.PlayOneShot(typewriterSound, typewriterVolume);
+    }
+
+    // Метод для включения/выключения звука печатной машинки
+    public void SetTypewriterEnabled(bool enabled)
+    {
+        typewriterEnabled = enabled;
+    }
+
     // Optional: Control volume
     public void SetVolume(float volume)
     {
@@ -103,5 +135,10 @@ public class AudioManager : MonoBehaviour
     public void SetButtonClickVolume(float volume)
     {
         buttonClickVolume = Mathf.Clamp01(volume);
+    }
+    
+    public void SetTypewriterVolume(float volume)
+    {
+        typewriterVolume = Mathf.Clamp01(volume);
     }
 }

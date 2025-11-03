@@ -305,6 +305,9 @@ MonoBehaviour:
   lines: []
   textSpeed: 0.1
   timeBetweenLines: 0.5
+  enableTypewriterSound: 1
+  soundChance: 0.7
+  minSoundDelay: 0.03
 --- !u!114 &424000499
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1019,18 +1022,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   audioSource: {fileID: 1961142256}
+  typewriterAudioSource: {fileID: 1997782322}
   chestHoverSound: {fileID: 8300000, guid: f131051070074de439ffa93c6968ff5f, type: 3}
   correctChestSound: {fileID: 8300000, guid: 5cba6d00f41e2964182eec084891f1e5, type: 3}
   wrongChestSound: {fileID: 8300000, guid: 40bf7e9e2ddbc344cb5809eadb92469f, type: 3}
   buttonClickSound: {fileID: 8300000, guid: 8fdc808b23d7b884580a50c08d59b504, type: 3}
   winSound: {fileID: 8300000, guid: 1f759db3b9b65564cbd11830f57137fa, type: 3}
   loseSound: {fileID: 8300000, guid: b2be8c9f03d8a594ca93e810d77c672b, type: 3}
+  typewriterSound: {fileID: 8300000, guid: f99d5e47abd6d7a459d49b86ef2089df, type: 3}
   chestHoverVolume: 0.5
   correctChestVolume: 0.8
   wrongChestVolume: 0.6
   buttonClickVolume: 0.5
   winSoundVolume: 1
   loseSoundVolume: 1
+  typewriterVolume: 0.7
+  minPitch: 0.8
+  maxPitch: 1.2
+  typewriterEnabled: 1
 --- !u!4 &849999374
 Transform:
   m_ObjectHideFlags: 0
@@ -1045,6 +1054,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1961142257}
+  - {fileID: 1997782323}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &853296572
@@ -1660,6 +1670,9 @@ MonoBehaviour:
   lines: []
   textSpeed: 0.1
   timeBetweenLines: 0.5
+  enableTypewriterSound: 1
+  soundChance: 0.7
+  minSoundDelay: 0.03
 --- !u!114 &1289115951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2726,6 +2739,135 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1997782321
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1997782323}
+  - component: {fileID: 1997782322}
+  m_Layer: 0
+  m_Name: TextAudioSource
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &1997782322
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1997782321}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &1997782323
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1997782321}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 849999374}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2000967009
 GameObject:
   m_ObjectHideFlags: 0
@@ -2876,6 +3018,9 @@ MonoBehaviour:
   lines: []
   textSpeed: 0.1
   timeBetweenLines: 0.5
+  enableTypewriterSound: 1
+  soundChance: 0.7
+  minSoundDelay: 0.03
 --- !u!114 &2100495381
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -219,7 +219,7 @@ MonoBehaviour:
   hoverScale: 1.15
   correctScale: 1
   wrongScale: 0.1
-  animationDuration: 0.3
+  animationDuration: 0.2
   wrongAnimationDuration: 1
   hideAfterWrong: 1
   scaleCurve:
