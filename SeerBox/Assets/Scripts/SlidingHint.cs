@@ -44,9 +44,11 @@ public class SlidingHint : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     Vector2 hiddenAnchoredPos;
     Coroutine anim;
     Vector3 velocity = Vector3.zero; // for SmoothDamp
+    private int ShowedTimes = 0;
 
     void Awake()
     {
+        ShowedTimes = 0;
         rect = GetComponent<RectTransform>();
         cg = GetComponent<CanvasGroup>();
         if (cg == null) cg = gameObject.AddComponent<CanvasGroup>();
@@ -99,6 +101,7 @@ public class SlidingHint : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     {
         if (anim != null) StopCoroutine(anim);
         anim = StartCoroutine(Animate(true));
+        ShowedTimes++;
     }
 
     public void Hide()
@@ -184,5 +187,10 @@ public class SlidingHint : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         EventTrigger.Entry entry = new EventTrigger.Entry { eventID = type };
         entry.callback.AddListener((data) => callback(data));
         trigger.triggers.Add(entry);
+    }
+
+    public int GetShowedTimes()
+    {
+        return ShowedTimes;
     }
 }

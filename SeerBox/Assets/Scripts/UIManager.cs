@@ -23,7 +23,8 @@ public class UIManager : MonoBehaviour
     public string[] startLines = { "Добро пожаловать в игру!", "Ищите сокровища..." };
     public string[] winRestartLines = { "Захотел пройти игру еще раз?" };
     public string[] loseLines = { "Ой не получилось пройти(" };
-    public string winMessage = "Ты победил!!!";
+    public string[] winWithHintsMessage = { "Ты победил!!!" };
+    public string[] winWithoutHintsMessage = { "Ты победил без подсказок!!!" };
 
     [Header("Level Dialogues")]
     public string[] level1Lines = { "Уровень 1", "Выберите правильный сундук" };
@@ -75,16 +76,6 @@ public class UIManager : MonoBehaviour
 
     IEnumerator InitializeGame()
     {
-        // Настраиваем winDialogue
-        if (winPanel != null)
-        {
-            winDialogue = winPanel.GetComponent<Dialogue>();
-            if (winDialogue != null)
-            {
-                winDialogue.lines = new string[] { winMessage };
-            }
-        }
-
         // Запускаем стартовый диалог
         if (startPanel != null)
         {
@@ -177,6 +168,20 @@ public class UIManager : MonoBehaviour
 
     IEnumerator ShowWinPanelRoutine()
     {
+        int UsedHints = FindFirstObjectByType<SlidingHint>().GetShowedTimes();
+        // Настраиваем winDialogue
+        if (winPanel != null)
+        {
+            winDialogue = winPanel.GetComponent<Dialogue>();
+            if (winDialogue != null)
+            {
+                if (UsedHints > 0)
+                    winDialogue.lines = winWithHintsMessage;
+                else
+                    winDialogue.lines = winWithoutHintsMessage;
+            }
+        } 
+
         if (hideLevelPanelCoroutine != null)
         {
             StopCoroutine(hideLevelPanelCoroutine);
@@ -200,12 +205,14 @@ public class UIManager : MonoBehaviour
         
         if (winDialogue != null)
         {
-            winDialogue.lines = new string[] { winMessage };
             winDialogue.StartDialogue();
         }
         else if (winText != null)
         {
-            winText.text = winMessage;
+            if (UsedHints > 0)
+                    winText.text = "Думаешь, я не видел, что ты использовал подсказки? Иди отсюда \"ясновидящий\"";
+                else
+                    winText.text = "Ты меня и вправду удивил... Тебе нужно идти поулчать премию Гудини...";
         }
     }
 
