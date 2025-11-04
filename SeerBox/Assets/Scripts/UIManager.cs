@@ -9,11 +9,13 @@ public class UIManager : MonoBehaviour
     public GameObject startPanel;
     public GameObject levelPanel;
     public GameObject winPanel;
+    public GameObject losePanel; // Новая панель проигрыша
 
     [Header("UI Elements")]
     public RectTransform hintImage;
     public TextMeshProUGUI winText;
     public Button restartButton;
+    public Button loseRestartButton; // Кнопка рестарта на панели проигрыша
 
     [Header("Animation Settings")]
     public float slideDuration = 0.5f;
@@ -23,6 +25,7 @@ public class UIManager : MonoBehaviour
     public string[] startLines = { "Добро пожаловать в игру!", "Ищите сокровища..." };
     public string[] winRestartLines = { "Захотел пройти игру еще раз?" };
     public string[] loseLines = { "Ой не получилось пройти(" };
+    public string[] loseRestartLines = { "Попробуешь еще раз?" }; // Новые линии для рестарта после проигрыша
     public string[] winWithHintsMessage = { "Ты победил!!!" };
     public string[] winWithoutHintsMessage = { "Ты победил без подсказок!!!" };
 
@@ -45,6 +48,7 @@ public class UIManager : MonoBehaviour
     private Dialogue startDialogue;
     private Dialogue levelDialogue;
     private Dialogue winDialogue;
+    private Dialogue loseDialogue; // Диалог для панели проигрыша
     private LevelManager levelManager;
     private Coroutine hideLevelPanelCoroutine;
     private float levelPanelShowTime;
@@ -58,16 +62,28 @@ public class UIManager : MonoBehaviour
             hintImageOriginalPos = hintImage.anchoredPosition;
         }
 
+        // Инициализируем все панели
         winPanel.SetActive(false);
+        losePanel.SetActive(false); // Скрываем панель проигрыша
         levelManager = FindFirstObjectByType<LevelManager>();
         
-        // Настраиваем кнопку рестарта
+        // Настраиваем кнопку рестарта на панели победы
         if (restartButton != null)
         {
             restartButton.onClick.AddListener(OnWinRestartClicked);
             if (restartButton.GetComponent<ButtonSoundHandler>() == null)
             {
                 restartButton.gameObject.AddComponent<ButtonSoundHandler>();
+            }
+        }
+
+        // Настраиваем кнопку рестарта на панели проигрыша
+        if (loseRestartButton != null)
+        {
+            loseRestartButton.onClick.AddListener(OnLoseRestartClicked);
+            if (loseRestartButton.GetComponent<ButtonSoundHandler>() == null)
+            {
+                loseRestartButton.gameObject.AddComponent<ButtonSoundHandler>();
             }
         }
             
@@ -97,6 +113,13 @@ public class UIManager : MonoBehaviour
             levelDialogue.OnDialogueComplete += OnLevelDialogueComplete;
         }
 
+        // Настраиваем панель проигрыша
+        if (losePanel != null)
+        {
+            loseDialogue = losePanel.GetComponent<Dialogue>();
+            losePanel.SetActive(false);
+        }
+
         yield return null;
     }
 
@@ -107,10 +130,15 @@ public class UIManager : MonoBehaviour
 
     void OnWinRestartClicked()
     {
-        StartCoroutine(RestartGameRoutine());
+        StartCoroutine(RestartGameFromWinRoutine());
     }
 
-    IEnumerator RestartGameRoutine()
+    void OnLoseRestartClicked()
+    {
+        StartCoroutine(RestartGameFromLoseRoutine());
+    }
+
+    IEnumerator RestartGameFromWinRoutine()
     {
         winPanel.SetActive(false);
         
@@ -122,6 +150,20 @@ public class UIManager : MonoBehaviour
         
         startPanel.SetActive(true);
         startDialogue.SetLines(winRestartLines);
+    }
+
+    IEnumerator RestartGameFromLoseRoutine()
+    {
+        losePanel.SetActive(false);
+        
+        // Прячем изображение подсказки
+        if (hintImage != null)
+        {
+            yield return StartCoroutine(SlideAnimation(hintImageOriginalPos + new Vector2(slideDistance, 0)));
+        }
+        
+        startPanel.SetActive(true);
+        startDialogue.SetLines(loseRestartLines);
     }
 
     public void ShowLevelPanel(int levelNumber)
@@ -169,6 +211,7 @@ public class UIManager : MonoBehaviour
     IEnumerator ShowWinPanelRoutine()
     {
         int UsedHints = FindFirstObjectByType<SlidingHint>().GetShowedTimes();
+        
         // Настраиваем winDialogue
         if (winPanel != null)
         {
@@ -199,8 +242,10 @@ public class UIManager : MonoBehaviour
             AudioManager.Instance.PlayWinSound();
         }
         
+        // Скрываем все панели, кроме winPanel
         startPanel.SetActive(false);
         levelPanel.SetActive(false);
+        losePanel.SetActive(false);
         winPanel.SetActive(true);
         
         if (winDialogue != null)
@@ -210,9 +255,9 @@ public class UIManager : MonoBehaviour
         else if (winText != null)
         {
             if (UsedHints > 1)
-                    winText.text = "Думаешь, я не видел, что ты использовал подсказки? Иди отсюда \"ясновидящий\"";
-                else
-                    winText.text = "Ты меня и вправду удивил... Тебе нужно идти поулчать премию Гудини...";
+                winText.text = "Думаешь, я не видел, что ты использовал подсказки? Иди отсюда \"ясновидящий\"";
+            else
+                winText.text = "Ты меня и вправду удивил... Тебе нужно идти поулчать премию Гудини...";
         }
     }
 
@@ -240,10 +285,18 @@ public class UIManager : MonoBehaviour
             AudioManager.Instance.PlayLoseSound();
         }
         
+        // Скрываем все панели, кроме losePanel
         winPanel.SetActive(false);
         levelPanel.SetActive(false);
-        startPanel.SetActive(true);
-        startDialogue.SetLines(loseLines);
+        startPanel.SetActive(false);
+        losePanel.SetActive(true);
+        
+        // Настраиваем диалог проигрыша
+        if (loseDialogue != null)
+        {
+            loseDialogue.SetLines(loseLines);
+            loseDialogue.StartDialogue();
+        }
     }
 
     // Основные методы анимации переходов

@@ -83,7 +83,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 1
+  m_PresetInfoIsWorld: 0
 --- !u!114 &111946075353982157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -215,9 +215,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Chest
   index: 0
   body: {fileID: 516803378062229782}
-  label: {fileID: 0}
   hoverScale: 1.15
-  animationDuration: 1
+  hoverAnimationDuration: 0.1
   jumpHeight: 1
   jumpDuration: 0.5
   jumpCurve:

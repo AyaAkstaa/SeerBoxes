@@ -666,7 +666,7 @@ public class LevelManager : MonoBehaviour
 
     private IEnumerator AnimateCoinWorld(SpriteRenderer sr, Transform tTrans)
     {
-        float elapsed = 0f;
+        //float elapsed = 0f;
         Vector3 startScale = Vector3.one * appearScale;
         Vector3 peak = Vector3.one * peakScale;
         Vector3 end = Vector3.one * finalScale;
@@ -898,7 +898,7 @@ public class LevelManager : MonoBehaviour
         var list = SpawnGrid(2, 3, chestNumberPrefab);
 
         // Простая последовательность с разными паттернами
-        int patternType = UnityEngine.Random.Range(0, 3);
+        int patternType = UnityEngine.Random.Range(0, 2); // Убрал 3-й вариант, т.к. он закомментирован
         List<int> numbers = new List<int>();
         string hint = "";
         int correctNumber = 0;
@@ -920,21 +920,10 @@ public class LevelManager : MonoBehaviour
                 numbers.Add(correctNumber);
                 hint = $"{geoStart}, {geoStart * multiplier}, {geoStart * multiplier * multiplier}...";
                 break;
-
-            // case 2: // Четные/нечетные
-            //     int oddEvenStart = UnityEngine.Random.Range(1, 10);
-            //     bool isEvenSequence = UnityEngine.Random.Range(0, 2) == 0;
-            //     correctNumber = isEvenSequence ?
-            //         (oddEvenStart % 2 == 0 ? oddEvenStart + 6 : oddEvenStart + 7) :
-            //         (oddEvenStart % 2 == 1 ? oddEvenStart + 6 : oddEvenStart + 7);
-            //     numbers.Add(correctNumber);
-            //     string type = isEvenSequence ? "четных" : "нечетных";
-            //     hint = $"Продолжи последовательность {type} чисел";
-            //     break;
         }
 
-        // Добавляем неправильные варианты
-        for (int i = 1; i < list.Count; i++)
+        // ДОБАВЛЕНО: Гарантируем, что numbers содержит 6 элементов
+        while (numbers.Count < list.Count)
         {
             int wrongNumber;
             do
@@ -945,6 +934,8 @@ public class LevelManager : MonoBehaviour
 
             numbers.Add(wrongNumber);
         }
+
+        // УДАЛЕНО: Старый цикл добавления неправильных вариантов
 
         // Перемешиваем
         for (int i = 0; i < numbers.Count; i++)
@@ -958,7 +949,7 @@ public class LevelManager : MonoBehaviour
         correctIndex = numbers.IndexOf(correctNumber);
         hintText.text = hint;
 
-        // Назначаем числа
+        // Назначаем числа - ТЕПЕРЬ numbers гарантированно имеет достаточно элементов
         for (int i = 0; i < list.Count; i++)
         {
             var nc = list[i].GetComponent<NumberChest>();
@@ -1330,22 +1321,30 @@ public class LevelManager : MonoBehaviour
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         hintText.text = "Может где-то слева... А может где-то справа... Но точно не в центре.";
-        // show two big chests (2 visible) and place hidden chest random (outside grid)
-        // but user said "both chests and 1 hidden" — implement: spawn 2 large chests and spawn one hidden at random pos
-        var list = SpawnGrid(1, 2, chestGenericPrefab); // two visible
-        // choose indices 0.. in spawned
-        //int not1 = 0, not2 = 1;
-        // spawn hidden somewhere in chestParent bounds, ensuring not overlapping existing chests
+
+        var list = SpawnGrid(1, 2, chestGenericPrefab);
+
         Vector2 hiddenPos = FindRandomFreeSpot();
         Debug.Log($"FindRandomFreeSpot returned: {hiddenPos}");
         var hiddenGo = Instantiate(chestHiddenPrefab, chestParent);
         hiddenGo.GetComponent<RectTransform>().anchoredPosition = hiddenPos;
         var hiddenChest = hiddenGo.GetComponent<Chest>();
-        hiddenChest.Init(2, OnChestClicked); // index 2
+        hiddenChest.Init(2, OnChestClicked);
+
+        // ГАРАНТИРОВАННАЯ настройка прозрачности через CanvasGroup
+        var canvasGroup = hiddenGo.GetComponent<CanvasGroup>();
+        if (canvasGroup == null)
+        {
+            canvasGroup = hiddenGo.AddComponent<CanvasGroup>();
+        }
+
+        // Установите нужное значение прозрачности (например, 0.3f для 30% видимости)
+        canvasGroup.alpha = 0.3f;
+
         spawned.Add(hiddenGo);
-        // correct chest is hidden one
         correctIndex = 2;
     }
+
 
     Vector2 FindRandomFreeSpot()
     {

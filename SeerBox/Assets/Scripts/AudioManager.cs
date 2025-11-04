@@ -6,7 +6,8 @@ public class AudioManager : MonoBehaviour
 
     [Header("Audio Sources")]
     public AudioSource audioSource;
-    public AudioSource typewriterAudioSource; // Новый AudioSource для звука печатной машинки
+    public AudioSource typewriterAudioSource;
+    public AudioSource musicAudioSource; 
 
     [Header("Sound Effects")]
     public AudioClip chestHoverSound;
@@ -15,7 +16,10 @@ public class AudioManager : MonoBehaviour
     public AudioClip buttonClickSound;
     public AudioClip winSound;
     public AudioClip loseSound;
-    public AudioClip typewriterSound; // Звук печатной машинки
+    public AudioClip typewriterSound;
+
+    [Header("Background Music")]
+    public AudioClip backgroundMusic;
 
     [Header("Volume Settings")]
     [Range(0, 1)] public float chestHoverVolume = 0.3f;
@@ -25,11 +29,16 @@ public class AudioManager : MonoBehaviour
     [Range(0, 1)] public float winSoundVolume = 1f;
     [Range(0, 1)] public float loseSoundVolume = 1f;
     [Range(0, 1)] public float typewriterVolume = 0.7f;
+    [Range(0, 1)] public float musicVolume = 0.5f; // Громкость музыки
 
     [Header("Typewriter Settings")]
     [Range(0.5f, 2f)] public float minPitch = 0.8f;
     [Range(0.5f, 2f)] public float maxPitch = 1.2f;
     public bool typewriterEnabled = true;
+
+    [Header("Music Settings")]
+    public bool musicEnabled = true;
+    public bool loopMusic = true;
 
     private void Awake()
     {
@@ -54,6 +63,20 @@ public class AudioManager : MonoBehaviour
             typewriterAudioSource = gameObject.AddComponent<AudioSource>();
             typewriterAudioSource.playOnAwake = false;
             typewriterAudioSource.loop = false;
+        }
+
+        // Create music audio source if it doesn't exist
+        if (musicAudioSource == null)
+        {
+            musicAudioSource = gameObject.AddComponent<AudioSource>();
+            musicAudioSource.playOnAwake = false;
+            musicAudioSource.loop = loopMusic;
+        }
+
+        // Start background music if enabled
+        if (musicEnabled && backgroundMusic != null)
+        {
+            PlayBackgroundMusic();
         }
     }
 
@@ -122,7 +145,52 @@ public class AudioManager : MonoBehaviour
         typewriterEnabled = enabled;
     }
 
-    // Optional: Control volume
+    // ====== МУЗЫКАЛЬНЫЕ МЕТОДЫ ======
+
+    // Воспроизведение фоновой музыки
+    public void PlayBackgroundMusic()
+    {
+        if (!musicEnabled || backgroundMusic == null || musicAudioSource == null)
+            return;
+
+        if (!musicAudioSource.isPlaying || musicAudioSource.clip != backgroundMusic)
+        {
+            musicAudioSource.clip = backgroundMusic;
+            musicAudioSource.volume = musicVolume;
+            musicAudioSource.Play();
+        }
+    }
+
+    // Остановка музыки
+    public void StopMusic()
+    {
+        if (musicAudioSource != null && musicAudioSource.isPlaying)
+        {
+            musicAudioSource.Stop();
+        }
+    }
+
+    // Пауза музыки
+    public void PauseMusic()
+    {
+        if (musicAudioSource != null && musicAudioSource.isPlaying)
+        {
+            musicAudioSource.Pause();
+        }
+    }
+
+    // Продолжить музыку
+    public void ResumeMusic()
+    {
+        if (musicAudioSource != null && !musicAudioSource.isPlaying && musicAudioSource.clip != null)
+        {
+            musicAudioSource.UnPause();
+        }
+    }
+
+    // ====== НАСТРОЙКИ ГРОМКОСТИ ======
+
+    // Установка общей громкости звуковых эффектов
     public void SetVolume(float volume)
     {
         if (audioSource != null)
@@ -131,12 +199,50 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // Optional: Control individual volumes
+    // Установка громкости музыки
+    public void SetMusicVolume(float volume)
+    {
+        musicVolume = Mathf.Clamp01(volume);
+        if (musicAudioSource != null)
+        {
+            musicAudioSource.volume = musicVolume;
+        }
+    }
+
+    // Установка громкости звуковых эффектов
+    public void SetSFXVolume(float volume)
+    {
+        if (audioSource != null)
+        {
+            audioSource.volume = volume;
+        }
+        if (typewriterAudioSource != null)
+        {
+            typewriterAudioSource.volume = volume;
+        }
+    }
+
+    // Включение/выключение музыки
+    public void SetMusicEnabled(bool enabled)
+    {
+        musicEnabled = enabled;
+        if (musicEnabled && !musicAudioSource.isPlaying)
+        {
+            PlayBackgroundMusic();
+        }
+        else if (!musicEnabled)
+        {
+            StopMusic();
+        }
+    }
+
+    // Установка громкости кнопок
     public void SetButtonClickVolume(float volume)
     {
         buttonClickVolume = Mathf.Clamp01(volume);
     }
     
+    // Установка громкости печатной машинки
     public void SetTypewriterVolume(float volume)
     {
         typewriterVolume = Mathf.Clamp01(volume);
