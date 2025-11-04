@@ -40,6 +40,17 @@ public class LevelManager : MonoBehaviour
     private bool isLevelLoading = false;
     private Coroutine levelLoadCoroutine;
 
+    [Header("Coin Settings")]
+    public GameObject coinPrefab;
+    public float lifeDuration = 0.9f;           // Сколько живёт монетка (сек)
+    public float appearScale = 0.6f;            // Начальный масштаб (relative)
+    public float peakScale = 1.2f;              // Пиковый масштаб при "появлении"
+    public float finalScale = 1.0f;             // Итоговый масштаб после "попа"
+    public Vector2 uiMoveOffset = new Vector2(0f, 40f); // Сдвиг в пикселях для UI (за время жизни)
+    public Vector3 worldMoveOffset = new Vector3(0f, 0.6f, 0f); // Сдвиг в world-единицах
+    public AnimationCurve scaleCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+    public AnimationCurve alphaCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
     // example assets you must assign:
     [Header("Level 2 assets")]
     public Sprite islandHintSprite;
@@ -95,7 +106,7 @@ public class LevelManager : MonoBehaviour
 
     void Start()
     {
-        uiManager = FindObjectOfType<UIManager>();
+        uiManager = FindFirstObjectByType<UIManager>();
     }
 
     void Clear()
@@ -161,7 +172,7 @@ public class LevelManager : MonoBehaviour
     {
         if (isLevelLoading) 
         {
-            Debug.LogWarning("Level is already loading, please wait...");
+            Debug.LogWarning("Загрузка...");
             return;
         }
 
@@ -183,7 +194,7 @@ public class LevelManager : MonoBehaviour
         Clear();
         currentLevel = lvl;
 
-        Debug.Log($"Resetting and generating level {lvl}");
+        Debug.Log($"Рестарт и запуск уровня {lvl}");
 
         // Показываем панель уровня
         if (uiManager != null)
@@ -199,7 +210,7 @@ public class LevelManager : MonoBehaviour
 
     void GenerateLevelImmediate(int lvl)
     {
-        Debug.Log($"Generating level {lvl} immediately");
+        Debug.Log($"Запуск уровня {lvl}");
 
         isLevelInteractive = true; // Убеждаемся, что уровень интерактивен
 
@@ -218,7 +229,6 @@ public class LevelManager : MonoBehaviour
         }
 
         isLevelLoading = false;
-        Debug.Log($"Level {lvl} generation completed");
     }
 
     // helper: spawn grid rows x cols with given prefab, returns list
@@ -394,6 +404,8 @@ public class LevelManager : MonoBehaviour
             if (clickedChest != null)
             {
                 clickedChest.MarkAsCorrect();
+                SpawnCoinAt(clickedChest.transform);
+                clickedChest.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 0.25f); // зелёный оттенок
             }
 
             hintText.text = "Correct!";
@@ -526,6 +538,181 @@ public class LevelManager : MonoBehaviour
 
         chest.PlayJumpAndFallAnimation();
     }
+
+    public void SpawnCoinAt(Transform chestTransform)
+    {
+        if (coinPrefab == null)
+        {
+            Debug.LogWarning("Coin prefab not set on GameManagerCoinSpawner.");
+            return;
+        }
+
+        // Определяем, является ли объект UI (имеет RectTransform и находится внутри Canvas)
+        RectTransform chestRect = chestTransform as RectTransform;
+        Canvas parentCanvas = chestTransform.GetComponentInParent<Canvas>();
+
+        // Проверяем, является ли префаб UI-префабом (имеет RectTransform)
+        RectTransform prefabRect = coinPrefab.GetComponent<RectTransform>();
+
+        if (chestRect != null && parentCanvas != null && prefabRect != null)
+        {
+            // UI-случай: инстанцируем префаб как дочерний элемент сундука, сохраняя локальную позицию/масштаб
+            GameObject instance = Instantiate(coinPrefab, chestTransform, false);
+            RectTransform rt = instance.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchoredPosition = Vector2.zero;
+                rt.localScale = Vector3.one * appearScale;
+            }
+
+            // Попытка найти компонент Image внутри префаба для запуска UI-анимации
+            Image img = instance.GetComponentInChildren<Image>();
+            if (img != null)
+            {
+                img.raycastTarget = false;
+                StartCoroutine(AnimateCoinUI(img, rt));
+            }
+            else
+            {
+                // Если в UI-префабе нет Image — просто уничтожаем через время жизни (защитная логика)
+                Destroy(instance, lifeDuration + 0.1f);
+            }
+        }
+        else
+        {
+            // World-случай: инстанцируем префаб в позиции сундука
+            GameObject instance = Instantiate(coinPrefab, chestTransform.position, Quaternion.identity);
+            instance.transform.SetParent(null);
+            instance.transform.localScale = Vector3.one * appearScale;
+
+            // Попытка найти SpriteRenderer внутри префаба
+            SpriteRenderer sr = instance.GetComponentInChildren<SpriteRenderer>();
+            if (sr != null)
+            {
+                Color col = sr.color;
+                col.a = 0f;
+                sr.color = col;
+                StartCoroutine(AnimateCoinWorld(sr, instance.transform));
+            }
+            else
+            {
+                // Если нет SpriteRenderer, проверим на Image (вдруг это UI-префаб, но мы в world)
+                Image img = instance.GetComponentInChildren<Image>();
+                RectTransform rt = instance.GetComponent<RectTransform>();
+                if (img != null && rt != null && chestRect != null)
+                {
+                    // Переназначим в UI-иерархию сундука и запустим UI-анимацию
+                    rt.SetParent(chestTransform, false);
+                    rt.anchoredPosition = Vector2.zero;
+                    rt.localScale = Vector3.one * appearScale;
+                    img.raycastTarget = false;
+                    StartCoroutine(AnimateCoinUI(img, rt));
+                }
+                else
+                {
+                    // Ничего не найдено — безопасно удалить после времени жизни
+                    Destroy(instance, lifeDuration + 0.1f);
+                }
+            }
+        }
+    }
+
+
+    private IEnumerator AnimateCoinUI(Image img, RectTransform rt)
+    {
+        float t = 0f;
+        float half = lifeDuration * 0.5f;
+
+        // стартовые параметры
+        Vector3 startScale = Vector3.one * appearScale;
+        Vector3 peak = Vector3.one * peakScale;
+        Vector3 end = Vector3.one * finalScale;
+        Color c = img.color;
+        c.a = 0f;
+        img.color = c;
+
+        Vector2 startPos = rt.anchoredPosition;
+        Vector2 targetPos = startPos + uiMoveOffset;
+
+        // Первый этап — появление до пика (половина времени)
+        while (t < half)
+        {
+            t += Time.deltaTime;
+            float tt = Mathf.Clamp01(t / half);
+            float s = scaleCurve.Evaluate(tt);
+            img.color = new Color(1f, 1f, 1f, alphaCurve.Evaluate(tt));
+            rt.localScale = Vector3.Lerp(startScale, peak, s);
+            rt.anchoredPosition = Vector2.Lerp(startPos, targetPos, tt);
+            yield return null;
+        }
+
+        // Второй этап — спад к финишному масштабу с исчезновением
+        t = 0f;
+        while (t < half)
+        {
+            t += Time.deltaTime;
+            float tt = Mathf.Clamp01(t / half);
+            float s = scaleCurve.Evaluate(tt);
+            float alpha = Mathf.Clamp01(1f - alphaCurve.Evaluate(tt)); // плавное исчезание
+            img.color = new Color(1f, 1f, 1f, alpha);
+            rt.localScale = Vector3.Lerp(peak, end, s);
+            rt.anchoredPosition = Vector2.Lerp(targetPos, targetPos + new Vector2(0f, 8f), tt * 0.5f);
+            yield return null;
+        }
+
+        // Гарантируем финальное состояние и удаляем
+        Destroy(rt.gameObject);
+    }
+
+    private IEnumerator AnimateCoinWorld(SpriteRenderer sr, Transform tTrans)
+    {
+        float elapsed = 0f;
+        Vector3 startScale = Vector3.one * appearScale;
+        Vector3 peak = Vector3.one * peakScale;
+        Vector3 end = Vector3.one * finalScale;
+        Color startColor = sr.color;
+        startColor.a = 0f;
+        sr.color = startColor;
+
+        Vector3 startPos = tTrans.position;
+        Vector3 targetPos = startPos + worldMoveOffset;
+
+        float half = lifeDuration * 0.5f;
+
+        // появление -> пик
+        float time = 0f;
+        while (time < half)
+        {
+            time += Time.deltaTime;
+            float tt = Mathf.Clamp01(time / half);
+            float s = scaleCurve.Evaluate(tt);
+            Color c = sr.color;
+            c.a = alphaCurve.Evaluate(tt);
+            sr.color = c;
+            tTrans.localScale = Vector3.Lerp(startScale, peak, s);
+            tTrans.position = Vector3.Lerp(startPos, targetPos, tt * 0.6f);
+            yield return null;
+        }
+
+        // спад -> исчезновение
+        time = 0f;
+        while (time < half)
+        {
+            time += Time.deltaTime;
+            float tt = Mathf.Clamp01(time / half);
+            float s = scaleCurve.Evaluate(tt);
+            float alpha = Mathf.Clamp01(1f - alphaCurve.Evaluate(tt));
+            Color c = sr.color;
+            c.a = alpha;
+            sr.color = c;
+            tTrans.localScale = Vector3.Lerp(peak, end, s);
+            tTrans.position = Vector3.Lerp(targetPos, targetPos + worldMoveOffset * 0.25f, tt);
+            yield return null;
+        }
+
+        Destroy(tTrans.gameObject);
+    }
+    
 
 
     IEnumerator NextLevelWithDelay()
@@ -703,8 +890,136 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    // 3) Math: 3x3 numbered chests; hint partial expression implies result <=6 => choose chest with number <=6 (only one such)
     void GenerateLevel3()
+    {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
+
+        var list = SpawnGrid(2, 3, chestNumberPrefab);
+
+        // Простая последовательность с разными паттернами
+        int patternType = UnityEngine.Random.Range(0, 3);
+        List<int> numbers = new List<int>();
+        string hint = "";
+        int correctNumber = 0;
+
+        switch (patternType)
+        {
+            case 0: // Арифметическая прогрессия
+                int start = UnityEngine.Random.Range(1, 10);
+                int step = UnityEngine.Random.Range(1, 4);
+                correctNumber = start + 3 * step;
+                numbers.Add(correctNumber);
+                hint = $"{start}, {start + step}, {start + 2 * step}...";
+                break;
+
+            case 1: // Геометрическая прогрессия (упрощенная)
+                int geoStart = UnityEngine.Random.Range(1, 5);
+                int multiplier = UnityEngine.Random.Range(2, 4);
+                correctNumber = geoStart * multiplier * multiplier * multiplier;
+                numbers.Add(correctNumber);
+                hint = $"{geoStart}, {geoStart * multiplier}, {geoStart * multiplier * multiplier}...";
+                break;
+
+            // case 2: // Четные/нечетные
+            //     int oddEvenStart = UnityEngine.Random.Range(1, 10);
+            //     bool isEvenSequence = UnityEngine.Random.Range(0, 2) == 0;
+            //     correctNumber = isEvenSequence ?
+            //         (oddEvenStart % 2 == 0 ? oddEvenStart + 6 : oddEvenStart + 7) :
+            //         (oddEvenStart % 2 == 1 ? oddEvenStart + 6 : oddEvenStart + 7);
+            //     numbers.Add(correctNumber);
+            //     string type = isEvenSequence ? "четных" : "нечетных";
+            //     hint = $"Продолжи последовательность {type} чисел";
+            //     break;
+        }
+
+        // Добавляем неправильные варианты
+        for (int i = 1; i < list.Count; i++)
+        {
+            int wrongNumber;
+            do
+            {
+                wrongNumber = correctNumber + UnityEngine.Random.Range(-10, 11);
+                if (wrongNumber == correctNumber) wrongNumber += 5;
+            } while (numbers.Contains(wrongNumber) || wrongNumber <= 0);
+
+            numbers.Add(wrongNumber);
+        }
+
+        // Перемешиваем
+        for (int i = 0; i < numbers.Count; i++)
+        {
+            int randomIndex = UnityEngine.Random.Range(i, numbers.Count);
+            int temp = numbers[i];
+            numbers[i] = numbers[randomIndex];
+            numbers[randomIndex] = temp;
+        }
+
+        correctIndex = numbers.IndexOf(correctNumber);
+        hintText.text = hint;
+
+        // Назначаем числа
+        for (int i = 0; i < list.Count; i++)
+        {
+            var nc = list[i].GetComponent<NumberChest>();
+            if (nc != null) nc.SetNumber(numbers[i]);
+        }
+    }
+
+    void GenerateLevel4()
+    {
+        hintImage.sprite = hintSprite;
+        hintImage.color = Color.white;
+
+        int target = UnityEngine.Random.Range(20, 80);
+        var list = SpawnGrid(2, 3, chestNumberPrefab);
+
+        // Создаем числа, одно из которых ближайшее к target
+        List<int> numbers = new List<int>();
+
+        // Правильное число (ближайшее к target)
+        int closestNumber = target + UnityEngine.Random.Range(-5, 6);
+        // Гарантируем, что не выходим за разумные пределы
+        closestNumber = Mathf.Clamp(closestNumber, 1, 100);
+        numbers.Add(closestNumber);
+
+        // Неправильные числа (дальше от target)
+        for (int i = 1; i < list.Count; i++)
+        {
+            int wrongNumber;
+            do
+            {
+                int offset = UnityEngine.Random.Range(8, 15);
+                wrongNumber = target + (UnityEngine.Random.Range(0, 2) == 0 ? offset : -offset);
+                wrongNumber = Mathf.Clamp(wrongNumber, 1, 100);
+            } while (numbers.Contains(wrongNumber) || Mathf.Abs(wrongNumber - target) <= Mathf.Abs(closestNumber - target));
+
+            numbers.Add(wrongNumber);
+        }
+
+        // Перемешиваем
+        for (int i = 0; i < numbers.Count; i++)
+        {
+            int randomIndex = UnityEngine.Random.Range(i, numbers.Count);
+            int temp = numbers[i];
+            numbers[i] = numbers[randomIndex];
+            numbers[randomIndex] = temp;
+        }
+
+        correctIndex = numbers.IndexOf(closestNumber);
+
+        hintText.text = $"Что-то по типу {target}";
+
+        // Назначаем числа
+        for (int i = 0; i < list.Count; i++)
+        {
+            var nc = list[i].GetComponent<NumberChest>();
+            if (nc != null) nc.SetNumber(numbers[i]);
+        }
+    }
+
+    // 3) Math: 3x3 numbered chests; hint partial expression implies result <=6 => choose chest with number <=6 (only one such)
+    void GenerateLevel5()
     {
         var templates = GetMathTemplates();
 
@@ -805,8 +1120,7 @@ public class LevelManager : MonoBehaviour
         correctIndex = correctIdx;
     }
 
-    // 4) Symmetry puzzle: 6 chests with pictures; hint is one of 3 random symmetry puzzles; chests arranged randomly
-    void GenerateLevel4()
+    void GenerateLevel6()
     {
         List<string> zero = new List<string> { "г", "ж", "з", "и", "к", "л", "м", "н", "п", "с", "т", "у", "щ", "ч", "ш", "э" }; // нет дырок
         List<string> one = new List<string> { "а", "б", "д", "е", "о", "р", "ъ", "ю", "ь", "я" }; // одна дырка
@@ -837,7 +1151,7 @@ public class LevelManager : MonoBehaviour
         // 6 chests in 2x3 grid
         var list = SpawnGrid(2, 3, chestNumberPrefab);
         int correctLocal = UnityEngine.Random.Range(0, list.Count);
-        hintText.text = $"{targetHoles}...";
+        hintText.text = $"{targetHoles}... о";
 
         // build wrong-pool: all letters from other hole counts (so correctLetter appears only once)
         List<string> wrongPool = new List<string>();
@@ -882,13 +1196,15 @@ public class LevelManager : MonoBehaviour
     }
 
     // 5) Arrow path: 6x6 grid (36). hint is textual arrows from top-left to target (precompute path)
-    void GenerateLevel5()
+    void GenerateLevel7()
     {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
         hintText.font = arrowFont;
-        hintText.text = "Follow the arrows from top-left.";
+        hintText.text = "";
         var list = SpawnGrid(6, 6, chestGenericPrefab);
+        var firstChest = list[0];
+        firstChest.GetComponent<Image>().color = new Color(0.8f, 1f, 0.8f); // highlight start cell
         int cols = 6;
         // choose random target cell (not 0)
         int target = UnityEngine.Random.Range(1, 36);
@@ -1009,16 +1325,16 @@ public class LevelManager : MonoBehaviour
     }
 
     // 6) Two shown not correct; there is 1 hidden chest somewhere barely visible
-    void GenerateLevel6()
+    void GenerateLevel8()
     {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-        hintText.text = "Нажми на левый сундук... или может на правый...";
+        hintText.text = "Может где-то слева... А может где-то справа... Но точно не в центре.";
         // show two big chests (2 visible) and place hidden chest random (outside grid)
         // but user said "both chests and 1 hidden" — implement: spawn 2 large chests and spawn one hidden at random pos
         var list = SpawnGrid(1, 2, chestGenericPrefab); // two visible
         // choose indices 0.. in spawned
-        int not1 = 0, not2 = 1;
+        //int not1 = 0, not2 = 1;
         // spawn hidden somewhere in chestParent bounds, ensuring not overlapping existing chests
         Vector2 hiddenPos = FindRandomFreeSpot();
         Debug.Log($"FindRandomFreeSpot returned: {hiddenPos}");
@@ -1095,9 +1411,9 @@ public class LevelManager : MonoBehaviour
         return new Vector2(6.34f, -3.98f);
     }
 
-    void GenerateLevel7()
+    void GenerateLevel9()
     {
-        hintText.text = "Find the chest with mixed color of these two";
+        hintText.text = "";
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
 
@@ -1407,7 +1723,7 @@ public class LevelManager : MonoBehaviour
     {
         hintImage.sprite = hintSprite;
         hintImage.color = Color.white;
-        hintText.text = "\"Thought it'd be easy? Now real clairvoyance time.\"";
+        hintText.text = "\"Ничем не могу помочь...\"";
         var list = SpawnGrid(1, 2, chestGenericPrefab);
         correctIndex = UnityEngine.Random.Range(0, 2);
     }
