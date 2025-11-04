@@ -58,7 +58,7 @@ public class UIManager : MonoBehaviour
         }
 
         winPanel.SetActive(false);
-        levelManager = FindObjectOfType<LevelManager>();
+        levelManager = FindFirstObjectByType<LevelManager>();
         
         // Настраиваем кнопку рестарта
         if (restartButton != null)

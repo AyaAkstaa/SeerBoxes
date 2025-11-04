@@ -363,8 +363,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 183.93}
-  m_SizeDelta: {x: -336, y: -367.85}
+  m_AnchoredPosition: {x: -0.000030517578, y: 183.93}
+  m_SizeDelta: {x: -140, y: -367.85}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &433466822
 PrefabInstance:
@@ -923,54 +923,62 @@ MonoBehaviour:
   slideDuration: 0.5
   slideDistance: 500
   startLines:
-  - "\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C
-    \u0432 \u0438\u0433\u0440\u0443!"
-  - "\u0418\u0449\u0438\u0442\u0435 \u0441\u043E\u043A\u0440\u043E\u0432\u0438\u0449\u0430..."
+  - ...
+  - "\u0412\u044B \u0433\u043E\u0442\u043E\u0432\u044B \u043A \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044E?"
+  - "\u041C\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u043C \u0432\u0430\u0448\u0438
+    \u044D\u043A\u0441\u0442\u0440\u0430\u0441\u0435\u043D\u0441\u043E\u0440\u043D\u044B\u0435
+    \u0441\u043F\u043E\u0441\u043E\u0431\u043D\u043E\u0441\u0442\u0438"
+  - "\u0412\u0430\u043C \u043D\u0443\u0436\u043D\u043E \u043F\u0440\u043E\u0441\u0442\u043E
+    \u043D\u0430\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0430\u043C\u043E\u043C
+    \u0441\u0443\u043D\u0434\u0443\u043A\u0435 \u0441\u043E\u043A\u0440\u043E\u0432\u0438\u0449\u0435"
   winRestartLines:
   - "\u0417\u0430\u0445\u043E\u0442\u0435\u043B \u043F\u0440\u043E\u0439\u0442\u0438
     \u0438\u0433\u0440\u0443 \u0435\u0449\u0435 \u0440\u0430\u0437?"
   loseLines:
-  - "\u041E\u0439 \u043D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u043E\u0441\u044C
-    \u043F\u0440\u043E\u0439\u0442\u0438("
+  - "\u0416\u0430\u043B\u044C, \u043F\u0440\u043E\u0449\u0430\u0439\u0442\u0435"
   winMessage: "\u0422\u044B \u043F\u043E\u0431\u0435\u0434\u0438\u043B!!!"
   level1Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 1"
+  - "\u0422\u0435\u0441\u0442 1"
   - "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u044B\u0439
     \u0441\u0443\u043D\u0434\u0443\u043A"
   level2Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 2"
-  - "\u0421\u043B\u0435\u0434\u0443\u0439\u0442\u0435 \u043A\u0430\u0440\u0442\u0435"
+  - "\u042D\u0442\u043E \u0431\u044B\u043B\u043E \u043F\u0440\u043E\u0441\u0442\u043E"
+  - "\u0422\u0435\u0441\u0442 2"
+  - "\u0422\u0435\u043F\u0435\u0440\u044C \u0434\u0430\u0432\u0430\u0439\u0442\u0435
+    \u0443\u0441\u043B\u043E\u0436\u043D\u0438\u043C"
   level3Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 3"
-  - "\u0420\u0435\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0435\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0443\u044E
-    \u0437\u0430\u0434\u0430\u0447\u0443"
+  - "\u042D\u0442\u043E \u0443\u0436\u0435 \u0438\u043D\u0442\u0435\u0440\u0435\u0441\u043D\u0435\u0435..."
+  - "\u0422\u0435\u0441\u0442 3"
+  - "\u041D\u0438\u0447\u0435\u0433\u043E \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E\u0433\u043E,
+    \u044D\u0442\u043E \u0434\u043E\u043B\u0436\u043D\u043E \u0431\u044B\u0442\u044C
+    \u043B\u0435\u0433\u043A\u043E"
   level4Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 4"
-  - "\u0429\u0449\u0449\u0449\u0449....."
+  - "\u0422\u0435\u0441\u0442 4"
+  - "\u041F\u0440\u043E\u0441\u0442\u043E \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u044C\u043D\u043E\u0435
+    \u0442\u0435\u0441\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435"
   level5Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 5"
-  - "\u041A\u0443\u0434\u0430 \u0432\u0435\u0434\u0443\u0442 \u044D\u0442\u0438 \u0441\u0442\u0440\u0435\u043B\u043A\u0438?"
+  - "\u0422\u0435\u0441\u0442 5"
+  - "\u041D\u0443 \u0438 \u0437\u0430\u043A\u0440\u0435\u043F\u0438\u043C"
   level6Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 6"
-  - "\u0427\u0442\u043E-\u0442\u043E \u0442\u0443\u0442 \u043D\u0435 \u0442\u0430\u043A"
+  - "\u0422\u0435\u0441\u0442 6"
+  - "\u0429\u0449\u0449\u0449..."
   level7Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 7"
-  - "\u0427\u0442\u043E \u0437\u0430 \u043F\u044F\u0442\u043D\u0430 \u043D\u0430
-    \u043B\u0438\u0441\u0442\u043E\u0447\u043A\u0435?"
+  - "\u0422\u0435\u0441\u0442 7"
+  - "\u042D\u0442\u043E\u0442 \u0441\u0430\u043C\u044B\u0439 \u0441\u043B\u043E\u0436\u043D\u044B\u0439"
   level8Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 8"
-  - "\u0425\u043C, \u0447\u0442\u043E \u0437\u0430 \u0441\u0442\u0440\u0430\u043D\u043D\u044B\u0439
-    \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0447\u0438\u0441\u0435\u043B..."
+  - "\u0422\u0435\u0441\u0442 8"
+  - "\u0417\u0434\u0435\u0441\u044C \u0432\u0441\u0451 \u043D\u0435 \u0442\u0430\u043A
+    \u043F\u0440\u043E\u0441\u0442\u043E"
   level9Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 9"
-  - "\u041D\u0430\u0439\u0434\u0438 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0435
-    \u0447\u0438\u0441\u043B\u043E"
+  - "\u0422\u0435\u0441\u0442 9"
+  - "\u041C\u044B \u0443\u0436\u0435 \u043F\u043E\u0447\u0442\u0438 \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438,
+    \u044F \u0443\u0432\u0435\u0440\u0435\u043D, \u0447\u0442\u043E \u0434\u043B\u044F
+    \u0432\u0430\u0441 \u044D\u0442\u043E \u043D\u0435 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0430"
   level10Lines:
-  - "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 10"
-  - "\u0422\u044B \u0434\u0443\u043C\u0430\u043B \u0432\u0441\u0435 \u0442\u0430\u043A
-    \u043B\u0435\u0433\u043A\u043E? \u0412\u043E\u0442 \u0438 \u0433\u0430\u0434\u0430\u0439
-    \u0442\u0435\u043F\u0435\u0440\u044C \u0433\u0434\u0435 \u0437\u0434\u0435\u0441\u044C
-    \u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u044B\u0439 \u0441\u0443\u043D\u0434\u0443\u043A..."
+  - "\u0422\u0435\u0441\u0442 10"
+  - ...
+  - "\u042D\u0442\u043E \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u0432\u0441\u0435\u043C
+    \u043B\u0435\u0433\u043A\u043E, \u0432\u0435\u0440\u043D\u043E?"
   levelPanelHideDelay: 1
   minDisplayTime: 3
 --- !u!4 &635580069
@@ -1493,6 +1501,67 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 910065279}
   m_CullTransparentMesh: 1
+--- !u!1001 &935168077
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -2253911629886400664, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_Name
+      value: coin
+      objectReference: {fileID: 0}
+    - target: {fileID: 3626916397498700004, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_SortingOrder
+      value: 19
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -12.15
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -4.39
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878350319992209165, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: -8435245712485981826, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
 --- !u!1 &963402658
 GameObject:
   m_ObjectHideFlags: 0
@@ -1644,12 +1713,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Privet...
-
-    Danila...'
+  m_text: "\u041F\u0440\u0438\u0432\u0435\u0442..."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
-  m_sharedMaterial: {fileID: -7565816258613729075, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
+  m_sharedMaterial: {fileID: -6394252369658823998, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2395,12 +2462,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Privet...
-
-    Danila...'
+  m_text: "\u041F\u0440\u0438\u0432\u0435\u0442..."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
-  m_sharedMaterial: {fileID: -7565816258613729075, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
+  m_sharedMaterial: {fileID: -6394252369658823998, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2533,10 +2598,10 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u041D\u0435 \u043F\u043E\u0434\u0433\u043B\u044F\u0434\u044B\u0432\u0430\u0439"
+  m_text: "\u0422\u0441-\u0441..."
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
-  m_sharedMaterial: {fileID: -7565816258613729075, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
+  m_sharedMaterial: {fileID: -6394252369658823998, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2598,7 +2663,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: -0.0028250245, y: 0, z: 0.1376915, w: 0}
+  m_margin: {x: 0.17976426, y: 0, z: 0.39740515, w: 0}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0
@@ -2635,6 +2700,11 @@ RectTransform:
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 5042502071672752380, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
   m_PrefabInstance: {fileID: 5266355749947318755}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1833482093 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -2253911629886400664, guid: 08f96e8aa5a21664e9105c763d9475c8, type: 3}
+  m_PrefabInstance: {fileID: 935168077}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1961142255
 GameObject:
@@ -2800,8 +2870,8 @@ MonoBehaviour:
   hintImage: {fileID: 441246513}
   hintSprite: {fileID: -4022321212224859861, guid: 24ac09245f2d1c242b1c2d4399c993e6, type: 3}
   hintText: {fileID: 1593101109}
-  standartFont: {fileID: 11400000, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
-  arrowFont: {fileID: 11400000, guid: 9f9945405c523ca4e9e45c3ae3b75aad, type: 2}
+  standartFont: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
+  arrowFont: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
   chestGenericPrefab: {fileID: 5000382426261594867, guid: f703acb8ba72a274f968e4ae4956c4c8, type: 3}
   chestNumberPrefab: {fileID: 2422423260663849935, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
   chestImagePrefab: {fileID: 996630938534579785, guid: 8c11e1a1019b44d4aa3fb6913aad7b1d, type: 3}
@@ -2809,6 +2879,61 @@ MonoBehaviour:
   chestOddPrefab: {fileID: 1536722511405649484, guid: 2c13d166392dd874c961cc8af8dbd564, type: 3}
   chestColorPrefab: {fileID: 5803648512063016505, guid: 4ad9ece5109f4414e91f26824e29b2d9, type: 3}
   enableDebug: 1
+  coinPrefab: {fileID: 1833482093}
+  lifeDuration: 0.9
+  appearScale: 0.6
+  peakScale: 1.2
+  finalScale: 1
+  uiMoveOffset: {x: 0, y: 0}
+  worldMoveOffset: {x: 0, y: 0, z: 0}
+  scaleCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  alphaCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   islandHintSprite: {fileID: -1686535624405118820, guid: 9f7624a98c30d3a4f9beb066fe9523f5, type: 3}
   xMarkSprite: {fileID: -2727716461213896887, guid: 874f7001bfbe23645a8bdc438b6b9174, type: 3}
   noChestZoneSize: {fileID: 963402659}
@@ -3595,3 +3720,4 @@ SceneRoots:
   - {fileID: 635580069}
   - {fileID: 849999374}
   - {fileID: 433466822}
+  - {fileID: 935168077}
