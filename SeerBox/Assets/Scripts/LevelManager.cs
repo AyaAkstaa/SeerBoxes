@@ -741,7 +741,7 @@ public class LevelManager : MonoBehaviour
 
     void Lose()
     {
-        hintText.text = "Wrong!";
+        hintText.text = "Я пытался...";
         StartCoroutine(ShowLoseScreenWithDelay());
     }
 
@@ -997,7 +997,7 @@ public class LevelManager : MonoBehaviour
 
         correctIndex = numbers.IndexOf(closestNumber);
 
-        hintText.text = $"Что-то по типу {target}";
+        hintText.text = $"Что-то около {target}";
 
         // Назначаем числа
         for (int i = 0; i < list.Count; i++)
@@ -1337,7 +1337,7 @@ public class LevelManager : MonoBehaviour
         }
 
         // Установите нужное значение прозрачности (например, 0.3f для 30% видимости)
-        canvasGroup.alpha = 0.3f;
+        canvasGroup.alpha = 0.0025f;
 
         spawned.Add(hiddenGo);
         correctIndex = 2;

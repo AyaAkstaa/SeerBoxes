@@ -137,7 +137,7 @@ GameObject:
   - component: {fileID: 56569804}
   - component: {fileID: 56569803}
   - component: {fileID: 56569806}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: SkipButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -282,7 +282,7 @@ GameObject:
   - component: {fileID: 258909416}
   - component: {fileID: 258909415}
   - component: {fileID: 258909414}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: RestartButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -415,7 +415,7 @@ GameObject:
   - component: {fileID: 424000500}
   - component: {fileID: 424000499}
   - component: {fileID: 424000498}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: LevelPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -572,7 +572,7 @@ GameObject:
   - component: {fileID: 441246512}
   - component: {fileID: 441246513}
   - component: {fileID: 441246514}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Hint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -721,7 +721,7 @@ GameObject:
   - component: {fileID: 455364932}
   - component: {fileID: 455364934}
   - component: {fileID: 455364933}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1067,8 +1067,7 @@ MonoBehaviour:
     \u043D\u0430\u0437\u0432\u0430\u0442\u044C \u0432 \u043A\u0430\u043A\u043E\u043C
     \u0441\u0443\u043D\u0434\u0443\u043A\u0435 \u0441\u043E\u043A\u0440\u043E\u0432\u0438\u0449\u0435"
   winRestartLines:
-  - "\u0412\u043E\u0442 \u0447\u0435\u0440\u0442, \u043E\u043F\u044F\u0442\u044C
-    \u0442\u043E \u0436\u0435 \u0441\u0430\u043C\u043E\u0435"
+  - Ah shit, here we go again
   loseLines:
   - "\u0416\u0430\u043B\u044C, \u043F\u0440\u043E\u0449\u0430\u0439\u0442\u0435"
   loseRestartLines:
@@ -1164,7 +1163,7 @@ GameObject:
   - component: {fileID: 799297696}
   - component: {fileID: 799297698}
   - component: {fileID: 799297697}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: StartTMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1299,7 +1298,7 @@ GameObject:
   m_Component:
   - component: {fileID: 801491624}
   - component: {fileID: 801491625}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: ChestZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1420,7 +1419,7 @@ MonoBehaviour:
   wrongChestSound: {fileID: 8300000, guid: 40bf7e9e2ddbc344cb5809eadb92469f, type: 3}
   buttonClickSound: {fileID: 8300000, guid: 8fdc808b23d7b884580a50c08d59b504, type: 3}
   winSound: {fileID: 8300000, guid: 1f759db3b9b65564cbd11830f57137fa, type: 3}
-  loseSound: {fileID: 8300000, guid: b2be8c9f03d8a594ca93e810d77c672b, type: 3}
+  loseSound: {fileID: 8300000, guid: a08e0622cf826e3418edf48cf50078a4, type: 3}
   typewriterSound: {fileID: 8300000, guid: f99d5e47abd6d7a459d49b86ef2089df, type: 3}
   backgroundMusic: {fileID: 8300000, guid: 702e0e19c5088db45bc1032f011dd7a2, type: 3}
   chestHoverVolume: 0.5
@@ -1466,7 +1465,7 @@ GameObject:
   - component: {fileID: 853296576}
   - component: {fileID: 853296575}
   - component: {fileID: 853296574}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Canvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1567,7 +1566,7 @@ GameObject:
   - component: {fileID: 882571037}
   - component: {fileID: 882571039}
   - component: {fileID: 882571038}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1704,7 +1703,7 @@ GameObject:
   - component: {fileID: 899647152}
   - component: {fileID: 899647151}
   - component: {fileID: 899647150}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Main
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1815,7 +1814,7 @@ GameObject:
   - component: {fileID: 910065283}
   - component: {fileID: 910065282}
   - component: {fileID: 910065281}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: RestartButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2007,7 +2006,7 @@ GameObject:
   m_Component:
   - component: {fileID: 963402659}
   - component: {fileID: 963402660}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: OutOfZoneForHiddenChest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2102,7 +2101,7 @@ GameObject:
   - component: {fileID: 1131516258}
   - component: {fileID: 1131516260}
   - component: {fileID: 1131516259}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: StartTMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2238,7 +2237,7 @@ GameObject:
   - component: {fileID: 1150012090}
   - component: {fileID: 1150012092}
   - component: {fileID: 1150012091}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: SubtitlesText (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2285,8 +2284,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "\u0420\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0430: AyaAksta
-    & Wilourn\r\n\u041C\u0443\u0437\u044B\u043A\u0430: Windaws\nCopyright\r\nCopyright
-    JustAngelSQ 2017\r\n\u201CSans\u201D by \u201CRyan Brotherston\u201D\n"
+    & Wilourn\r\n\u041C\u0443\u0437\u044B\u043A\u0430: Windaws\n\u0428\u0440\u0438\u0444\u0442:
+    Comic Sans MS Pixel\r\nCopyright JustAngelSQ 2017\r\n\u201CSans\u201D by \u201CRyan
+    Brotherston\u201D\n"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
   m_sharedMaterial: {fileID: -6394252369658823998, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
@@ -2376,7 +2376,7 @@ GameObject:
   - component: {fileID: 1165591653}
   - component: {fileID: 1165591655}
   - component: {fileID: 1165591654}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: SubtitlesText (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2423,8 +2423,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "\u0420\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0430: AyaAksta
-    & Wilourn\r\n\u041C\u0443\u0437\u044B\u043A\u0430: Windaws\nCopyright\r\nCopyright
-    JustAngelSQ 2017\r\n\u201CSans\u201D by \u201CRyan Brotherston\u201D\n"
+    & Wilourn\r\n\u041C\u0443\u0437\u044B\u043A\u0430: Windaws\n\u0428\u0440\u0438\u0444\u0442:
+    Comic Sans MS Pixel\r\nCopyright JustAngelSQ 2017\r\n\u201CSans\u201D by \u201CRyan
+    Brotherston\u201D\n"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
   m_sharedMaterial: {fileID: -6394252369658823998, guid: 5190f4a9d2474c349a39c20bc403d3aa, type: 2}
@@ -2644,7 +2645,7 @@ GameObject:
   - component: {fileID: 1289115952}
   - component: {fileID: 1289115951}
   - component: {fileID: 1289115950}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: WinPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2742,7 +2743,7 @@ GameObject:
   - component: {fileID: 1311323370}
   - component: {fileID: 1311323369}
   - component: {fileID: 1311323368}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: LosePanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2839,7 +2840,7 @@ GameObject:
   - component: {fileID: 1390039792}
   - component: {fileID: 1390039791}
   - component: {fileID: 1390039790}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: StartTMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2976,7 +2977,7 @@ GameObject:
   - component: {fileID: 1429640918}
   - component: {fileID: 1429640917}
   - component: {fileID: 1429640916}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3162,7 +3163,7 @@ GameObject:
   - component: {fileID: 1489179504}
   - component: {fileID: 1489179506}
   - component: {fileID: 1489179505}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: HintZone
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3237,7 +3238,7 @@ GameObject:
   - component: {fileID: 1530681579}
   - component: {fileID: 1530681581}
   - component: {fileID: 1530681580}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3373,7 +3374,7 @@ GameObject:
   - component: {fileID: 1589722222}
   - component: {fileID: 1589722221}
   - component: {fileID: 1589722220}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: textTMP
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3509,7 +3510,7 @@ GameObject:
   - component: {fileID: 1593101111}
   - component: {fileID: 1593101110}
   - component: {fileID: 1593101109}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: Text (TMP)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4129,7 +4130,7 @@ GameObject:
   - component: {fileID: 2100495382}
   - component: {fileID: 2100495381}
   - component: {fileID: 2100495380}
-  m_Layer: 5
+  m_Layer: 3
   m_Name: StartPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4221,9 +4222,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 899647149}
     m_Modifications:
+    - target: {fileID: 2184689599499364239, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2422423260663849935, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
       propertyPath: m_Name
       value: NumberChest
+      objectReference: {fileID: 0}
+    - target: {fileID: 2422423260663849935, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 3636035681531230676, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
       propertyPath: m_fontAsset
@@ -4317,6 +4326,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6274412223165913030, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4375,6 +4388,10 @@ PrefabInstance:
       value: ColorSample1
       objectReference: {fileID: 0}
     - target: {fileID: 3086278024211805871, guid: 21e7ee50a982635429fed2fd9e15e3e3, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3086278024211805871, guid: 21e7ee50a982635429fed2fd9e15e3e3, type: 3}
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
@@ -4391,9 +4408,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 899647149}
     m_Modifications:
+    - target: {fileID: 2184689599499364239, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2422423260663849935, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
       propertyPath: m_Name
       value: NumberChest
+      objectReference: {fileID: 0}
+    - target: {fileID: 2422423260663849935, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5042502071672752380, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
       propertyPath: m_Pivot.x
@@ -4475,6 +4500,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6274412223165913030, guid: f9b1f246e2c9d6643bbb02ba9007c9b0, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -4533,6 +4562,10 @@ PrefabInstance:
       value: ColorSample2
       objectReference: {fileID: 0}
     - target: {fileID: 5573746010437198720, guid: f1383d97572b06442ab797307cedf842, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5573746010437198720, guid: f1383d97572b06442ab797307cedf842, type: 3}
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
@@ -4554,6 +4587,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 899647149}
     m_Modifications:
+    - target: {fileID: 1537608381345552290, guid: f5490daaaef1ea34ebb920f175c63d62, type: 3}
+      propertyPath: m_Layer
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 5786865402167599104, guid: f5490daaaef1ea34ebb920f175c63d62, type: 3}
       propertyPath: m_Camera
       value: 
@@ -4641,6 +4678,10 @@ PrefabInstance:
     - target: {fileID: 9014814565999227595, guid: f5490daaaef1ea34ebb920f175c63d62, type: 3}
       propertyPath: m_Name
       value: HiddenChest
+      objectReference: {fileID: 0}
+    - target: {fileID: 9014814565999227595, guid: f5490daaaef1ea34ebb920f175c63d62, type: 3}
+      propertyPath: m_Layer
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
