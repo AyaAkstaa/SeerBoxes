@@ -175,7 +175,7 @@ public class UIManager : MonoBehaviour
             winDialogue = winPanel.GetComponent<Dialogue>();
             if (winDialogue != null)
             {
-                if (UsedHints > 0)
+                if (UsedHints > 1)
                     winDialogue.lines = winWithHintsMessage;
                 else
                     winDialogue.lines = winWithoutHintsMessage;
@@ -209,7 +209,7 @@ public class UIManager : MonoBehaviour
         }
         else if (winText != null)
         {
-            if (UsedHints > 0)
+            if (UsedHints > 1)
                     winText.text = "Думаешь, я не видел, что ты использовал подсказки? Иди отсюда \"ясновидящий\"";
                 else
                     winText.text = "Ты меня и вправду удивил... Тебе нужно идти поулчать премию Гудини...";
