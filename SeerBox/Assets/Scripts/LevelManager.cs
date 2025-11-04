@@ -16,6 +16,9 @@ public class LevelManager : MonoBehaviour
     public Sprite hintSprite;
     public TextMeshProUGUI hintText;
 
+     [Header("Animation Settings")]
+    public float jumpDuration = 0.8f; 
+
     [Header("Fonts")]
     public TMP_FontAsset standartFont;
     public TMP_FontAsset arrowFont;
@@ -114,18 +117,24 @@ public class LevelManager : MonoBehaviour
             levelLoadCoroutine = null;
         }
 
-        // Удаляем все созданные объекты
+        // Сбрасываем анимации всех сундуков перед удалением
         foreach (var g in spawned)
         {
             if (g != null)
+            {
+                var chest = g.GetComponent<Chest>();
+                if (chest != null)
+                {
+                    chest.ResetAnimation();
+                }
                 Destroy(g);
+            }
         }
         spawned.Clear();
 
         correctIndex = -1;
-        isLevelInteractive = true; // Сбрасываем флаг интерактивности
+        isLevelInteractive = true;
     
-
         // Сбрасываем UI
         if (hintImage != null)
         {
@@ -367,18 +376,16 @@ public class LevelManager : MonoBehaviour
         return list;
     }
 
-    // В методе OnChestClicked добавляем звуки
     void OnChestClicked(int idx)
     {
-        if (isLevelLoading || !isLevelInteractive) return; // Добавляем проверку на isLevelInteractive
+        if (isLevelLoading || !isLevelInteractive) return;
 
         Debug.Log("Clicked: " + idx);
 
         // БЛОКИРУЕМ ВСЕ СУНДУКИ СРАЗУ ПОСЛЕ ПЕРВОГО КЛИКА
         SetAllChestsInteractable(false);
-        isLevelInteractive = false; // Добавляем флаг блокировки уровня
+        isLevelInteractive = false;
 
-        // Получаем компонент Chest
         Chest clickedChest = null;
         if (idx < spawned.Count && spawned[idx] != null)
         {
@@ -401,8 +408,10 @@ public class LevelManager : MonoBehaviour
                 clickedChest.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 0.25f); // зелёный оттенок
             }
 
-            // GO NEXT after small delay
-            StartCoroutine(NextLevelWithDelay());
+            hintText.text = "Correct!";
+
+            // Запускаем анимацию падения для всех неправильных сундуков с задержкой
+            StartCoroutine(AnimateWrongChestsFall());
         }
         else
         {
@@ -412,16 +421,123 @@ public class LevelManager : MonoBehaviour
                 AudioManager.Instance.PlayWrongChest();
             }
 
-            // Помечаем неправильный сундук
+            // Запускаем анимацию только для нажатого неправильного сундука
             if (clickedChest != null)
             {
-                clickedChest.MarkAsWrong();
+                clickedChest.MarkAsWrong(() =>
+                {
+                    // После завершения анимации нажатого сундука
+                    // запускаем анимацию для остальных НЕУПАВШИХ сундуков
+                    StartCoroutine(AnimateAllChestsFall());
+                });
             }
-
-            Lose();
+            else
+            {
+                StartCoroutine(AnimateAllChestsFall());
+            }
         }
     }
 
+
+    // Анимация падения всех сундуков (при неправильном выборе)
+    private IEnumerator AnimateAllChestsFall()
+    {
+        yield return new WaitForSeconds(0.3f); // Небольшая задержка перед началом
+
+        List<Chest> chestsToAnimate = new List<Chest>();
+        float maxJumpDuration = 0f;
+
+        // Собираем только те сундуки, которые еще не упали (исключаем уже анимированные)
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            if (spawned[i] != null)
+            {
+                var chest = spawned[i].GetComponent<Chest>();
+                if (chest != null)
+                {
+                    // Проверяем, интерактивен ли еще сундук (не упал ли он уже)
+                    var canvasGroup = chest.GetComponent<CanvasGroup>();
+                    if (canvasGroup != null && canvasGroup.alpha > 0.1f) // Если сундук еще видим
+                    {
+                        chestsToAnimate.Add(chest);
+                        maxJumpDuration = Mathf.Max(maxJumpDuration, chest.jumpDuration);
+                    }
+                }
+            }
+        }
+
+        // Если нет сундуков для анимации, выходим
+        if (chestsToAnimate.Count == 0)
+        {
+            Lose();
+            yield break;
+        }
+
+        // Запускаем все анимации почти одновременно с небольшими случайными задержками
+        foreach (var chest in chestsToAnimate)
+        {
+            float randomDelay = UnityEngine.Random.Range(0f, 0.1f);
+            StartCoroutine(AnimateSingleChestWithDelay(chest, randomDelay));
+        }
+
+        // Ждем завершения всех анимаций
+        yield return new WaitForSeconds(maxJumpDuration + 0.1f + 0.5f);
+        Lose();
+    }
+    
+    // Анимация падения только неправильных сундуков (при правильном выборе)
+    private IEnumerator AnimateWrongChestsFall()
+    {
+        yield return new WaitForSeconds(0.5f); // Пауза чтобы увидеть правильный сундук
+
+        List<Chest> chestsToAnimate = new List<Chest>();
+        float maxJumpDuration = 0f;
+
+        // Собираем неправильные сундуки для анимации (только те, что еще не упали)
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            if (i != correctIndex && spawned[i] != null)
+            {
+                var chest = spawned[i].GetComponent<Chest>();
+                if (chest != null)
+                {
+                    var canvasGroup = chest.GetComponent<CanvasGroup>();
+                    if (canvasGroup != null && canvasGroup.alpha > 0.1f) // Если сундук еще видим
+                    {
+                        chestsToAnimate.Add(chest);
+                        maxJumpDuration = Mathf.Max(maxJumpDuration, chest.jumpDuration);
+                    }
+                }
+            }
+        }
+
+        // Если нет сундуков для анимации, переходим к следующему уровню
+        if (chestsToAnimate.Count == 0)
+        {
+            NextLevel();
+            yield break;
+        }
+
+        // Запускаем все анимации почти одновременно с небольшими случайными задержками
+        foreach (var chest in chestsToAnimate)
+        {
+            float randomDelay = UnityEngine.Random.Range(0f, 0.08f);
+            StartCoroutine(AnimateSingleChestWithDelay(chest, randomDelay));
+        }
+
+        // Ждем завершения всех анимаций
+        yield return new WaitForSeconds(maxJumpDuration + 0.1f + 0.5f);
+        NextLevel();
+    }
+
+    // Вспомогательная корутина для анимации одного сундука с задержкой
+    private IEnumerator AnimateSingleChestWithDelay(Chest chest, float delay)
+    {
+        if (delay > 0)
+            yield return new WaitForSeconds(delay);
+
+        chest.PlayJumpAndFallAnimation();
+    }
 
     public void SpawnCoinAt(Transform chestTransform)
     {
@@ -604,7 +720,7 @@ public class LevelManager : MonoBehaviour
         yield return new WaitForSeconds(1f);
         NextLevel();
     }
-    // Новый метод для управления интерактивностью всех сундуков
+
     private void SetAllChestsInteractable(bool interactable)
     {
         foreach (var chestObj in spawned)
