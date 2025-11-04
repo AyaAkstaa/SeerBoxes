@@ -138,12 +138,12 @@ GameObject:
   - component: {fileID: 56569803}
   - component: {fileID: 56569806}
   m_Layer: 5
-  m_Name: Button
+  m_Name: SkipButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &56569802
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2650,7 +2650,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1289115950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2748,7 +2748,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1311323367
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3817,7 +3817,7 @@ MonoBehaviour:
   chestHiddenPrefab: {fileID: 9014814565999227595, guid: f5490daaaef1ea34ebb920f175c63d62, type: 3}
   chestOddPrefab: {fileID: 1536722511405649484, guid: 2c13d166392dd874c961cc8af8dbd564, type: 3}
   chestColorPrefab: {fileID: 5803648512063016505, guid: 4ad9ece5109f4414e91f26824e29b2d9, type: 3}
-  enableDebug: 1
+  enableDebug: 0
   coinPrefab: {fileID: 1833482093}
   lifeDuration: 0.9
   appearScale: 0.6

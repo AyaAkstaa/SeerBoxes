@@ -408,8 +408,6 @@ public class LevelManager : MonoBehaviour
                 clickedChest.GetComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 0.25f); // зелёный оттенок
             }
 
-            hintText.text = "Correct!";
-
             // Запускаем анимацию падения для всех неправильных сундуков с задержкой
             StartCoroutine(AnimateWrongChestsFall());
         }
